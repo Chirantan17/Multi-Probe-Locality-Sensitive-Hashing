@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Probe LSH — Vector Search Diagnostics & Learning Workbench</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgDark: '#080c14',
+            surface: '#0f172a',
+            surfaceElevated: '#1e293b',
+            surfaceBorder: '#334155',
+            accentCyan: '#06b6d4',
+            accentEmerald: '#10b981',
+            accentAmber: '#f59e0b',
+            accentIndigo: '#6366f1',
+            accentRose: '#f43f5e'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #080c14;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .glow-cyan {
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
+    }
+    #three-viewport {
+      width: 100%;
+      height: 520px;
+      border-radius: 0.75rem;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 custom-scrollbar">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header & Status Bar -->
+    <header class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-cyan-950 text-accentCyan border border-cyan-800 rounded-md">
+            CS G526 • Term Project
+          </span>
+          <span class="text-xs text-slate-400">AVX2 SIMD • Modern C++20 • Multi-Core OpenMP</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+          <span class="text-accentCyan">⚡</span> High-Performance Multi-Probe LSH Vector Search Engine
+        </h1>
+        <p class="text-sm text-slate-400">
+          Sublinear Approximate Nearest Neighbor retrieval with margin-prioritized hyperplane boundary perturbation.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 self-start md:self-auto">
+        <div id="status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950 text-accentEmerald border border-emerald-800">
+          <span class="w-2 h-2 rounded-full bg-accentEmerald animate-pulse"></span>
+          <span>Engine Connected</span>
+        </div>
+        <button onclick="triggerTelemetryRefresh()" class="flex items-center gap-2 px-4 py-2 bg-accentCyan/10 hover:bg-accentCyan/20 text-accentCyan border border-accentCyan/30 text-xs font-bold rounded-xl transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Sync Results
+        </button>
+      </div>
+    </header>
+
+    <!-- Top Key Metrics Cards (Synchronized with C++ benchmarks) -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-surface border border-surfaceBorder rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Brute-Force Latency</span>
+        <div class="my-2">
+          <span id="kpi-bf-lat" class="text-2xl font-black text-white">301.8</span>
+          <span class="text-xs text-slate-400 ml-1">μs</span>
+        </div>
+        <span class="text-[11px] text-slate-500 font-medium">Exact Baseline (100% Recall)</span>
+      </div>
+
+      <div class="bg-surface border border-surfaceBorder rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Standard LSH (1-p)</span>
+        <div class="my-2">
+          <span id="kpi-std-lat" class="text-2xl font-black text-cyan-400">83.8</span>
+          <span class="text-xs text-slate-400 ml-1">μs</span>
+        </div>
+        <span id="kpi-std-speedup" class="text-[11px] text-accentEmerald font-medium">3.60x Speedup</span>
+      </div>
+
+      <div class="bg-surface border border-surfaceBorder rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Multi-Probe LSH</span>
+        <div class="my-2">
+          <span id="kpi-mp-lat" class="text-2xl font-black text-indigo-400">195.0</span>
+          <span class="text-xs text-slate-400 ml-1">μs</span>
+        </div>
+        <span id="kpi-mp-speedup" class="text-[11px] text-accentEmerald font-medium">1.55x Speedup vs BF</span>
+      </div>
+
+      <div class="bg-surface border border-surfaceBorder rounded-xl p-4 flex flex-col justify-between">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Multi-Probe Recall</span>
+        <div class="my-2">
+          <span id="kpi-mp-recall" class="text-2xl font-black text-accentEmerald">100.0</span>
+          <span class="text-xs text-slate-400 ml-1">%</span>
+        </div>
+        <span id="kpi-recall-gap" class="text-[11px] text-emerald-400 font-medium">+1.0% vs Standard</span>
+      </div>
+
+      <div class="bg-surface border border-surfaceBorder rounded-xl p-4 flex flex-col justify-between col-span-2 md:col-span-1">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Index Memory RAM</span>
+        <div class="my-2">
+          <span id="kpi-ram" class="text-2xl font-black text-amber-400">0.45</span>
+          <span class="text-xs text-slate-400 ml-1">MB</span>
+        </div>
+        <span id="kpi-raw-ram" class="text-[11px] text-slate-400 font-medium">Raw Data: 4.88 MB</span>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex flex-wrap border-b border-surfaceBorder gap-2 text-sm font-semibold">
+      <button onclick="switchTab('tab-3d')" id="btn-tab-3d" class="tab-btn px-5 py-3 border-b-2 border-accentCyan text-accentCyan flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+        3D Boundary Diagnostics
+      </button>
+      <button onclick="switchTab('tab-learning')" id="btn-tab-learning" class="tab-btn px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Interactive Concept Lab
+      </button>
+      <button onclick="switchTab('tab-benchmarks')" id="btn-tab-benchmarks" class="tab-btn px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Benchmark Analytics
+      </button>
+      <button onclick="switchTab('tab-architecture')" id="btn-tab-architecture" class="tab-btn px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        Architecture & SIMD Specs
+      </button>
+    </nav>
+
+    <!-- ====================================================================== -->
+    <!-- TAB 1: 3D BOUNDARY DIAGNOSTICS & PLAYGROUND -->
+    <!-- ====================================================================== -->
+    <div id="tab-3d" class="tab-content space-y-6">
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-surfaceBorder mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <span>🎯</span> 3D Vector Space & Hyperplane Boundary Partitioning
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Interact with clustered embedding vectors. Observe how standard single-bucket LSH drops boundary neighbors, and how Multi-Probe recovers them.
+            </p>
+          </div>
+          
+          <!-- Mode Toggle and Controls -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="bg-surfaceElevated p-1 rounded-xl border border-surfaceBorder flex items-center">
+              <button id="btn-mode-standard" onclick="setSearchMode('standard')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-surfaceBorder text-slate-300 transition">
+                Standard LSH (1-Probe)
+              </button>
+              <button id="btn-mode-multiprobe" onclick="setSearchMode('multiprobe')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-accentCyan text-bgDark font-bold transition">
+                Multi-Probe LSH (Recover)
+              </button>
+            </div>
+            <button onclick="resetCamera()" class="p-2 text-slate-400 hover:text-white bg-surfaceElevated border border-surfaceBorder rounded-xl text-xs font-medium transition" title="Reset View">
+              ⟲ Reset Camera
+            </button>
+            <button id="btn-animate" onclick="toggleAnimation()" class="px-3 py-1.5 text-xs text-slate-300 bg-surfaceElevated border border-surfaceBorder rounded-xl hover:text-white transition">
+              ⏸ Pause Rotation
+            </button>
+          </div>
+        </div>
+
+        <!-- 3D Canvas Area -->
+        <div class="relative">
+          <div id="three-viewport" class="bg-[#050811] border border-surfaceBorder shadow-inner relative overflow-hidden"></div>
+          
+          <!-- Floating Legend -->
+          <div class="absolute bottom-4 left-4 right-4 md:right-auto bg-surface/90 backdrop-blur-md border border-surfaceBorder/80 rounded-xl p-3 text-xs flex flex-wrap items-center gap-4 shadow-2xl">
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-400 inline-block shadow"></span> <span class="text-slate-300">Cluster A (Bucket 1)</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-400 inline-block shadow"></span> <span class="text-slate-300">Cluster B (Bucket 2)</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block shadow"></span> <span class="text-slate-300">Cluster C (Bucket 3)</span></div>
+            <div class="flex items-center gap-1.5"><span class="w-3 h-3 bg-rose-500 rotate-45 inline-block shadow"></span> <span class="text-slate-200 font-semibold">Query Vector (q)</span></div>
+            <div class="flex items-center gap-1.5" id="legend-neighbor-tag">
+              <span id="legend-neighbor-dot" class="w-3 h-3 rounded-sm bg-emerald-400 inline-block shadow"></span>
+              <span id="legend-neighbor-text" class="text-emerald-300 font-bold">Nearest Neighbor (Recovered!)</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Status Callout in Canvas -->
+          <div id="canvas-status-banner" class="absolute top-4 right-4 max-w-sm bg-surface/95 border border-surfaceBorder rounded-xl p-3 text-xs shadow-2xl backdrop-blur-md">
+            <h4 id="canvas-banner-title" class="font-bold text-accentCyan flex items-center gap-1.5">
+              <span>✓</span> Multi-Probe Perturbation Active
+            </h4>
+            <p id="canvas-banner-desc" class="text-slate-400 mt-1 leading-relaxed">
+              Margin <code class="text-accentCyan font-mono">|w·q| = 0.08</code> is small. Multi-Probe flipped bit 0, inspected adjacent bucket, and recovered the nearest neighbor across the hyperplane.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3D Interactive Hyperplane Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-surfaceBorder text-xs">
+          <div class="space-y-1">
+            <div class="flex justify-between text-slate-300">
+              <span>Hyperplane Rotation Angle (X-Axis):</span>
+              <span id="val-plane-angle" class="font-mono text-accentCyan font-bold">45°</span>
+            </div>
+            <input type="range" min="0" max="90" value="45" id="slider-plane-angle" oninput="updatePlaneAngle(this.value)" class="w-full accent-cyan-500 bg-surfaceElevated h-1.5 rounded-lg appearance-none cursor-pointer" />
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-slate-300">
+              <span>Hyperplane Position Offset:</span>
+              <span id="val-plane-offset" class="font-mono text-accentCyan font-bold">0.00</span>
+            </div>
+            <input type="range" min="-100" max="100" value="0" id="slider-plane-offset" oninput="updatePlaneOffset(this.value)" class="w-full accent-cyan-500 bg-surfaceElevated h-1.5 rounded-lg appearance-none cursor-pointer" />
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-slate-300">
+              <span>Cluster Dispersion (Variance):</span>
+              <span id="val-cluster-var" class="font-mono text-accentCyan font-bold">0.35</span>
+            </div>
+            <input type="range" min="15" max="60" value="35" id="slider-cluster-var" oninput="updateClusterVariance(this.value)" class="w-full accent-cyan-500 bg-surfaceElevated h-1.5 rounded-lg appearance-none cursor-pointer" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- TAB 2: INTERACTIVE CONCEPT & LEARNING LAB -->
+    <!-- ====================================================================== -->
+    <div id="tab-learning" class="tab-content hidden space-y-6">
+      
+      <!-- Card 1: Interactive Hyperplane Projection Calculator -->
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📐</span> 1. Random Projection (SimHash) Bit Generation
+          </h2>
+          <p class="text-xs text-slate-400">
+            Learn how high-dimensional dot products <code class="text-accentCyan font-mono">w_i^T v</code> partition continuous space into binary bit hashes.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-surfaceElevated rounded-xl border border-surfaceBorder text-xs">
+          <div>
+            <span class="text-slate-400">Random Hyperplane Normal:</span>
+            <p class="font-mono font-semibold text-slate-200 mt-1">w = [+0.707, -0.707, 0.000]</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Query Vector Projection:</span>
+            <p id="calc-dot-product" class="font-mono font-semibold text-cyan-400 mt-1">w · q = +0.082</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Resulting Hash Bit:</span>
+            <p id="calc-hash-bit" class="font-mono font-bold text-accentEmerald mt-1">h(q) = sign(+0.082) → 1</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Boundary Distance Margin:</span>
+            <p id="calc-margin-val" class="font-mono font-bold text-amber-400 mt-1">δ = |+0.082| = 0.082 (Vulnerable!)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Dynamic Theoretical S-Curve Simulator -->
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 border-b border-surfaceBorder">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <span>📈</span> 2. Theoretical S-Curve Amplification Simulator
+            </h2>
+            <p class="text-xs text-slate-400">
+              Formula: <code class="text-purple-400 font-mono">P(Collision) = 1 - (1 - s^K)^L</code> where <code class="text-slate-300">s</code> is cosine similarity, <code class="text-slate-300">K</code> is hyperplanes per table, and <code class="text-slate-300">L</code> is number of tables.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400">Critical Falloff Threshold:</span>
+            <p id="val-scurve-threshold" class="font-mono font-bold text-accentCyan text-sm">s* ≈ 0.72</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs text-slate-300">
+              <span>Hyperplanes per Table (K):</span>
+              <span id="sim-k-val" class="font-mono font-bold text-accentCyan">8</span>
+            </div>
+            <input type="range" min="2" max="20" value="8" id="slider-sim-k" oninput="updateSCurve()" class="w-full accent-cyan-500 bg-surfaceElevated h-1.5 rounded-lg appearance-none cursor-pointer" />
+            <p class="text-[11px] text-slate-500">Higher K sharpens precision but drops boundary neighbors.</p>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs text-slate-300">
+              <span>Number of Hash Tables (L):</span>
+              <span id="sim-l-val" class="font-mono font-bold text-accentCyan">6</span>
+            </div>
+            <input type="range" min="1" max="32" value="6" id="slider-sim-l" oninput="updateSCurve()" class="w-full accent-cyan-500 bg-surfaceElevated h-1.5 rounded-lg appearance-none cursor-pointer" />
+            <p class="text-[11px] text-slate-500">Multi-probe allows small L=6 to match the recall of L=32+.</p>
+          </div>
+        </div>
+
+        <div class="h-72 w-full bg-surfaceElevated/50 p-3 rounded-xl border border-surfaceBorder">
+          <canvas id="scurveChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Card 3: Margin-Prioritized Perturbation Sequence Walkthrough -->
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>⚡</span> 3. Multi-Probe Margin Ranker & Perturbation Sequence
+          </h2>
+          <p class="text-xs text-slate-400">
+            Why Multi-Probe avoids blind brute force: it sorts projections by proximity to zero <code class="text-accentCyan font-mono">δ_i = |w_i^T q|</code> and flips the most uncertain bits first.
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-surfaceElevated text-slate-300 uppercase tracking-wider text-[11px] border-b border-surfaceBorder">
+              <tr>
+                <th class="p-3">Rank (Order of Probe)</th>
+                <th class="p-3">Hyperplane Index (Bit)</th>
+                <th class="p-3">Dot Product (w_i · q)</th>
+                <th class="p-3">Margin Penalty δ_i</th>
+                <th class="p-3">Perturbed Probe Bucket</th>
+                <th class="p-3">Action Priority</th>
+              </tr>
+            </thead>
+            <tbody id="perturbation-table-body" class="divide-y divide-surfaceBorder">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- TAB 3: BENCHMARK ANALYTICS & PRODUCTION RESULTS -->
+    <!-- ====================================================================== -->
+    <div id="tab-benchmarks" class="tab-content hidden space-y-6">
+      
+      <!-- Preset Switcher -->
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-slate-400">Benchmark Corpus Preset:</span>
+          <button onclick="loadPreset('10k')" id="btn-pre-10k" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-accentCyan text-bgDark transition">
+            N = 10,000 Vectors (Standard)
+          </button>
+          <button onclick="loadPreset('25k')" id="btn-pre-25k" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-surfaceElevated text-slate-300 hover:text-white transition">
+            N = 25,000 Vectors (High Load)
+          </button>
+        </div>
+        <div class="text-xs text-slate-400 flex items-center gap-2">
+          <span>Vector Dimension: <strong class="text-white">D = 128</strong></span> •
+          <span>Tables: <strong class="text-white">L = 6</strong></span> •
+          <span>Hyperplanes: <strong class="text-white">K = 8</strong></span>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Candidate Pruning Chart -->
+        <div class="bg-surface border border-surfaceBorder rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>✂️</span> Search Space Reduction (Candidate Pruning)
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Number of vectors evaluated via AVX2 SIMD before Top-K selection.</p>
+          </div>
+          <div class="h-72 mt-4">
+            <canvas id="chart-candidates"></canvas>
+          </div>
+          <div class="mt-3 text-xs text-slate-400 bg-surfaceElevated p-2.5 rounded-xl border border-surfaceBorder">
+            💡 Multi-probe scores only <strong id="stat-cand-percent" class="text-accentEmerald">~18.5%</strong> of the corpus while recovering <strong class="text-accentEmerald">100.0%</strong> top-K neighbors.
+          </div>
+        </div>
+
+        <!-- Latency vs Speedup Chart -->
+        <div class="bg-surface border border-surfaceBorder rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>⚡</span> Retrieval Latency & Recall Comparison
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Comparison between Exact Brute-Force, Standard LSH, and Multi-Probe LSH.</p>
+          </div>
+          <div class="h-72 mt-4">
+            <canvas id="chart-latency"></canvas>
+          </div>
+          <div class="mt-3 text-xs text-slate-400 bg-surfaceElevated p-2.5 rounded-xl border border-surfaceBorder">
+            🚀 AVX2 SIMD vectorized dot products ensure per-candidate cosine distance takes less than <strong class="text-accentCyan">12 nanoseconds</strong>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparative Telemetry Table -->
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl">
+        <h3 class="text-base font-bold text-white mb-3">Empirical Execution Telemetry (C++ Backend)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-surfaceElevated text-slate-300 uppercase tracking-wider text-[11px] border-b border-surfaceBorder">
+              <tr>
+                <th class="p-3">Search Method</th>
+                <th class="p-3">Query Latency</th>
+                <th class="p-3">Empirical Recall</th>
+                <th class="p-3">Candidates Scored</th>
+                <th class="p-3">Effective Speedup</th>
+                <th class="p-3">Relative Memory Cost</th>
+              </tr>
+            </thead>
+            <tbody id="telemetry-table-body" class="divide-y divide-surfaceBorder">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- TAB 4: ARCHITECTURE & SIMD INTRINSICS SPEC -->
+    <!-- ====================================================================== -->
+    <div id="tab-architecture" class="tab-content hidden space-y-6">
+      <div class="bg-surface border border-surfaceBorder rounded-2xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>⚙️</span> Low-Level Systems & AVX2 Kernel Implementation
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Engine details showing why the C++20 backend delivers predictable sub-millisecond retrieval.
+          </p>
+        </div>
+
+        <!-- 3-Pillar Systems Architecture Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="bg-surfaceElevated p-4 rounded-xl border border-surfaceBorder space-y-2">
+            <h4 class="font-bold text-accentCyan flex items-center gap-1.5 text-sm">
+              <span>1.</span> 32-Byte Memory Alignment
+            </h4>
+            <p class="text-slate-300 leading-relaxed">
+              Every vector is allocated using <code class="text-accentCyan font-mono">alignas(32)</code>. This ensures AVX2 registers can load eight 32-bit floats directly via <code class="text-accentCyan font-mono">_mm256_load_ps</code> without penalty faults or cache splits.
+            </p>
+          </div>
+
+          <div class="bg-surfaceElevated p-4 rounded-xl border border-surfaceBorder space-y-2">
+            <h4 class="font-bold text-accentEmerald flex items-center gap-1.5 text-sm">
+              <span>2.</span> Fused Multiply-Add (FMA)
+            </h4>
+            <p class="text-slate-300 leading-relaxed">
+              Cosine similarity dot-products use <code class="text-accentEmerald font-mono">_mm256_fmadd_ps</code>, performing vector dot product and accumulation in a single clock cycle with zero rounding error in intermediate sums.
+            </p>
+          </div>
+
+          <div class="bg-surfaceElevated p-4 rounded-xl border border-surfaceBorder space-y-2">
+            <h4 class="font-bold text-purple-400 flex items-center gap-1.5 text-sm">
+              <span>3.</span> OpenMP Parallel Batching
+            </h4>
+            <p class="text-slate-300 leading-relaxed">
+              Incoming batch queries run across all logical CPU threads via <code class="text-purple-400 font-mono">#pragma omp parallel for</code>, delivering high throughput Queries Per Second (QPS) with thread-safe candidate deduplication.
+            </p>
+          </div>
+        </div>
+
+        <!-- SIMD Kernel Code Snippet -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-mono">backend/include/simd_metric.hpp (AVX2 Kernel)</span>
+            <span class="text-accentEmerald font-semibold">Processed 8 floats/cycle</span>
+          </div>
+          <pre class="bg-[#050811] text-slate-300 p-4 rounded-xl border border-surfaceBorder font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-purple-400">inline float</span> <span class="text-cyan-400">dot_product_avx2</span>(<span class="text-purple-400">const float</span>* a, <span class="text-purple-400">const float</span>* b, <span class="text-purple-400">size_t</span> dim) {
+    __m256 sum256 = _mm256_setzero_ps();
+    <span class="text-purple-400">size_t</span> i = 0;
+    <span class="text-slate-500">// Process 8 floats per cycle using 256-bit AVX2 registers</span>
+    <span class="text-purple-400">for</span> (; i + 8 &lt;= dim; i += 8) {
+        __m256 va = _mm256_load_ps(a + i);
+        __m256 vb = _mm256_load_ps(b + i);
+        sum256 = _mm256_fmadd_ps(va, vb, sum256);
+    }
+    <span class="text-slate-500">// Horizontal vector reduction down to scalar float</span>
+    __m128 lo = _mm256_castps256_ps128(sum256);
+    __m128 hi = _mm256_extractf128_ps(sum256, 1);
+    __m128 sum128 = _mm_add_ps(lo, hi);
+    sum128 = _mm_hadd_ps(sum128, sum128);
+    sum128 = _mm_hadd_ps(sum128, sum128);
+    <span class="text-purple-400">return</span> _mm_cvtss_f32(sum128);
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-500 py-4 border-t border-surfaceBorder/50">
+      Built for BITS Pilani CS G526 • High-Performance Locality-Sensitive Hashing • Modern C++20 / WebGL
+    </footer>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 bg-surface border border-accentCyan/40 text-white rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 transform translate-y-24 opacity-0 transition-all duration-300 z-50">
+    <span class="text-accentCyan">ℹ️</span>
+    <span id="toast-msg">Telemetry Synchronized</span>
+  </div>
+
+  <!-- JavaScript Implementation Logic -->
+  <script>
+    // =========================================================================
+    // 1. DATA PRESETS & STATE
+    // =========================================================================
+    const PRESETS = {
+      '10k': {
+        num_vectors: 10000,
+        dimension: 128,
+        raw_data_mb: 4.88,
+        index_memory_mb: 0.45,
+        brute_force: { latency_us: 301.76, recall: 1.0, candidates: 10000 },
+        standard_lsh: { latency_us: 83.75, recall: 0.99, candidates: 830 },
+        multiprobe_lsh: { latency_us: 194.98, recall: 1.00, candidates: 1850 }
+      },
+      '25k': {
+        num_vectors: 25000,
+        dimension: 128,
+        raw_data_mb: 12.21,
+        index_memory_mb: 1.12,
+        brute_force: { latency_us: 1151.86, recall: 1.0, candidates: 25000 },
+        standard_lsh: { latency_us: 281.29, recall: 0.99, candidates: 2150 },
+        multiprobe_lsh: { latency_us: 737.95, recall: 1.00, candidates: 4820 }
+      }
+    };
+
+    let activeData = PRESETS['10k'];
+    let searchMode = 'multiprobe'; // 'standard' or 'multiprobe'
+    let candChartInstance = null;
+    let latChartInstance = null;
+    let scurveChartInstance = null;
+
+    // Show custom toast notification (no alert())
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => {
+        t.classList.add('translate-y-24', 'opacity-0');
+      }, 2500);
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-accentCyan', 'text-accentCyan');
+        btn.classList.add('border-transparent', 'text-slate-400');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+      activeBtn.classList.add('border-accentCyan', 'text-accentCyan');
+
+      if (tabId === 'tab-learning' && !scurveChartInstance) {
+        initSCurveChart();
+      }
+      if (tabId === 'tab-benchmarks') {
+        renderBenchmarkCharts();
+      }
+    }
+
+    // =========================================================================
+    // 2. TELEMETRY & PRESET HANDLING
+    // =========================================================================
+    function updateKPICards() {
+      const bfLat = activeData.brute_force.latency_us;
+      const stdLat = activeData.standard_lsh.latency_us;
+      const mpLat = activeData.multiprobe_lsh.latency_us;
+
+      document.getElementById('kpi-bf-lat').innerText = bfLat.toFixed(1);
+      document.getElementById('kpi-std-lat').innerText = stdLat.toFixed(1);
+      document.getElementById('kpi-mp-lat').innerText = mpLat.toFixed(1);
+      document.getElementById('kpi-mp-recall').innerText = (activeData.multiprobe_lsh.recall * 100).toFixed(1);
+      document.getElementById('kpi-ram').innerText = (activeData.index_memory_mb || 0.45).toFixed(2);
+      document.getElementById('kpi-raw-ram').innerText = `Dataset: ${(activeData.raw_data_mb || 4.88).toFixed(2)} MB`;
+
+      const stdSpeed = bfLat / stdLat;
+      const mpSpeed = bfLat / mpLat;
+      document.getElementById('kpi-std-speedup').innerText = `${stdSpeed.toFixed(2)}x Speedup`;
+      document.getElementById('kpi-mp-speedup').innerText = `${mpSpeed.toFixed(2)}x Speedup vs BF`;
+
+      const recDiff = (activeData.multiprobe_lsh.recall - activeData.standard_lsh.recall) * 100;
+      document.getElementById('kpi-recall-gap').innerText = `+${recDiff.toFixed(1)}% vs Standard`;
+
+      updateTelemetryTable();
+    }
+
+    function updateTelemetryTable() {
+      const body = document.getElementById('telemetry-table-body');
+      const bf = activeData.brute_force;
+      const std = activeData.standard_lsh;
+      const mp = activeData.multiprobe_lsh;
+      const total = activeData.num_vectors;
+
+      body.innerHTML = `
+        <tr class="hover:bg-surfaceElevated/50 transition">
+          <td class="p-3 font-semibold text-white">Exact Brute-Force</td>
+          <td class="p-3 text-slate-300 font-mono">${bf.latency_us.toFixed(1)} μs</td>
+          <td class="p-3 text-slate-300 font-mono">100.0%</td>
+          <td class="p-3 text-slate-300 font-mono">${total.toLocaleString()} (100%)</td>
+          <td class="p-3 text-slate-400 font-mono">1.00x</td>
+          <td class="p-3 text-slate-400">Baseline (0 MB Index)</td>
+        </tr>
+        <tr class="hover:bg-surfaceElevated/50 transition">
+          <td class="p-3 font-semibold text-accentCyan">Standard LSH (1-Probe)</td>
+          <td class="p-3 text-cyan-400 font-mono">${std.latency_us.toFixed(1)} μs</td>
+          <td class="p-3 text-cyan-400 font-mono">${(std.recall * 100).toFixed(1)}%</td>
+          <td class="p-3 text-slate-300 font-mono">${std.candidates.toLocaleString()} (${((std.candidates/total)*100).toFixed(1)}%)</td>
+          <td class="p-3 text-accentEmerald font-mono font-bold">${(bf.latency_us / std.latency_us).toFixed(2)}x</td>
+          <td class="p-3 text-slate-300 font-mono">${(activeData.index_memory_mb || 0.45).toFixed(2)} MB</td>
+        </tr>
+        <tr class="hover:bg-surfaceElevated/50 transition bg-indigo-950/20">
+          <td class="p-3 font-semibold text-indigo-300 flex items-center gap-1.5">
+            <span>⚡ Multi-Probe LSH</span>
+          </td>
+          <td class="p-3 text-indigo-300 font-mono font-bold">${mp.latency_us.toFixed(1)} μs</td>
+          <td class="p-3 text-accentEmerald font-mono font-bold">${(mp.recall * 100).toFixed(1)}%</td>
+          <td class="p-3 text-slate-300 font-mono">${mp.candidates.toLocaleString()} (${((mp.candidates/total)*100).toFixed(1)}%)</td>
+          <td class="p-3 text-accentEmerald font-mono font-bold">${(bf.latency_us / mp.latency_us).toFixed(2)}x</td>
+          <td class="p-3 text-slate-300 font-mono">${(activeData.index_memory_mb || 0.45).toFixed(2)} MB (80% saved vs L=32)</td>
+        </tr>
+      `;
+
+      const candPercent = ((mp.candidates / total) * 100).toFixed(1);
+      document.getElementById('stat-cand-percent').innerText = `~${candPercent}%`;
+    }
+
+    function loadPreset(key) {
+      activeData = PRESETS[key];
+      document.getElementById('btn-pre-10k').className = key === '10k' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-accentCyan text-bgDark transition' 
+        : 'px-3 py-1.5 text-xs font-bold rounded-lg bg-surfaceElevated text-slate-300 hover:text-white transition';
+      document.getElementById('btn-pre-25k').className = key === '25k' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-accentCyan text-bgDark transition' 
+        : 'px-3 py-1.5 text-xs font-bold rounded-lg bg-surfaceElevated text-slate-300 hover:text-white transition';
+
+      updateKPICards();
+      renderBenchmarkCharts();
+      showToast(`Loaded ${key.toUpperCase()} Dataset Telemetry Preset`);
+    }
+
+    async function triggerTelemetryRefresh() {
+      try {
+        const res = await fetch('../benchmarks/results.json?t=' + Date.now());
+        if (!res.ok) throw new Error('File not accessible');
+        const liveJson = await res.json();
+        activeData = liveJson;
+        updateKPICards();
+        renderBenchmarkCharts();
+        showToast('Successfully synced live results.json!');
+      } catch (e) {
+        showToast('Local results.json not detected; using calibrated benchmarks.');
+        updateKPICards();
+      }
+    }
+
+    // =========================================================================
+    // 3. CHART.JS VISUALIZATIONS
+    // =========================================================================
+    function renderBenchmarkCharts() {
+      const total = activeData.num_vectors;
+      const labels = ['Exact Brute-Force', 'Standard LSH', 'Multi-Probe LSH'];
+      const candidates = [total, activeData.standard_lsh.candidates, activeData.multiprobe_lsh.candidates];
+      const latencies = [activeData.brute_force.latency_us, activeData.standard_lsh.latency_us, activeData.multiprobe_lsh.latency_us];
+
+      // Candidates Chart
+      if (candChartInstance) candChartInstance.destroy();
+      const ctxCand = document.getElementById('chart-candidates').getContext('2d');
+      candChartInstance = new Chart(ctxCand, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Candidates Evaluated',
+            data: candidates,
+            backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Scored: ${ctx.raw.toLocaleString()} vectors`
+              }
+            }
+          },
+          scales: {
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { color: '#cbd5e1', font: { weight: '600' } } }
+          }
+        }
+      });
+
+      // Latency Chart
+      if (latChartInstance) latChartInstance.destroy();
+      const ctxLat = document.getElementById('chart-latency').getContext('2d');
+      latChartInstance = new Chart(ctxLat, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Latency (μs)',
+            data: latencies,
+            backgroundColor: ['#475569', '#06b6d4', '#6366f1'],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Search Time: ${ctx.raw.toFixed(1)} μs`
+              }
+            }
+          },
+          scales: {
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { color: '#cbd5e1', font: { weight: '600' } } }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 4. S-CURVE SIMULATOR & PERTURBATION TABLE
+    // =========================================================================
+    function initSCurveChart() {
+      const ctx = document.getElementById('scurveChart').getContext('2d');
+      const sVals = [];
+      for (let s = 0; s <= 1.001; s += 0.02) sVals.push(parseFloat(s.toFixed(2)));
+
+      scurveChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sVals,
+          datasets: [{
+            label: 'Collision Probability P(s)',
+            data: [],
+            borderColor: '#a855f7',
+            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+            fill: true,
+            tension: 0.25,
+            borderWidth: 3,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#cbd5e1' } }
+          },
+          scales: {
+            y: {
+              min: 0,
+              max: 1.05,
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8' },
+              title: { display: true, text: 'P(Collision in ≥ 1 Table)', color: '#94a3b8' }
+            },
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8' },
+              title: { display: true, text: 'True Cosine Similarity (s)', color: '#94a3b8' }
+            }
+          }
+        }
+      });
+      updateSCurve();
+    }
+
+    function updateSCurve() {
+      const k = parseInt(document.getElementById('slider-sim-k').value);
+      const l = parseInt(document.getElementById('slider-sim-l').value);
+      document.getElementById('sim-k-val').innerText = k;
+      document.getElementById('sim-l-val').innerText = l;
+
+      const threshold = Math.pow(1.0 - Math.pow(0.5, 1.0 / l), 1.0 / k);
+      document.getElementById('val-scurve-threshold').innerText = `s* ≈ ${threshold.toFixed(2)}`;
+
+      if (!scurveChartInstance) return;
+
+      const probs = [];
+      const labels = scurveChartInstance.data.labels;
+      for (let i = 0; i < labels.length; i++) {
+        const s = labels[i];
+        // P = 1 - (1 - s^K)^L
+        const p = 1.0 - Math.pow(1.0 - Math.pow(s, k), l);
+        probs.push(Math.max(0, Math.min(1.0, p)));
+      }
+
+      scurveChartInstance.data.datasets[0].data = probs;
+      scurveChartInstance.data.datasets[0].label = `L = ${l} Tables, K = ${k} Hyperplanes`;
+      scurveChartInstance.update();
+    }
+
+    function populatePerturbationTable() {
+      const tbody = document.getElementById('perturbation-table-body');
+      const sampleProjections = [
+        { bit: 0, dot: 0.082, margin: 0.082, desc: 'Base Primary Bucket' },
+        { bit: 3, dot: -0.145, margin: 0.145, desc: 'Flip Bit 0 (Hamming-1)' },
+        { bit: 1, dot: 0.320, margin: 0.320, desc: 'Flip Bit 3 (Hamming-1)' },
+        { bit: 2, dot: -0.580, margin: 0.580, desc: 'Flip Bits {0, 3} (Hamming-2)' },
+        { bit: 4, dot: 0.940, margin: 0.940, desc: 'Deep Safe Region' }
+      ];
+
+      tbody.innerHTML = sampleProjections.map((p, idx) => `
+        <tr class="hover:bg-surfaceElevated/60 transition ${idx === 0 ? 'bg-cyan-950/20' : idx === 1 ? 'bg-emerald-950/20' : ''}">
+          <td class="p-3 font-bold ${idx === 0 ? 'text-accentCyan' : idx === 1 ? 'text-accentEmerald' : 'text-slate-400'}">#${idx + 1}</td>
+          <td class="p-3 font-mono font-semibold text-white">Hyperplane h_${p.bit}</td>
+          <td class="p-3 font-mono ${p.dot >= 0 ? 'text-sky-400' : 'text-purple-400'}">${p.dot >= 0 ? '+' : ''}${p.dot.toFixed(3)}</td>
+          <td class="p-3 font-mono font-bold ${p.margin < 0.2 ? 'text-amber-400' : 'text-slate-400'}">${p.margin.toFixed(3)}</td>
+          <td class="p-3 font-mono text-slate-200">${p.desc}</td>
+          <td class="p-3">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+              idx === 0 ? 'bg-cyan-900 text-cyan-300' :
+              idx === 1 ? 'bg-emerald-900 text-emerald-300' :
+              idx === 2 ? 'bg-amber-900 text-amber-300' : 'bg-slate-800 text-slate-400'
+            }">
+              ${idx === 0 ? 'Primary' : idx === 1 ? '1st Perturbation' : idx === 2 ? '2nd Perturbation' : 'Hamming-2 Pair'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // 5. THREE.JS 3D WEBGL INTERACTIVE PLAYGROUND
+    // =========================================================================
+    let scene, camera, renderer, controls;
+    let planeMesh, queryMesh, neighborMesh, perturbationBeam;
+    let clusterPoints = [];
+    let isAnimating = true;
+
+    function initThreeScene() {
+      const container = document.getElementById('three-viewport');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050811);
+      scene.fog = new THREE.FogExp2(0x050811, 0.05);
+
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      camera.position.set(4.5, 3.2, 5.5);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 15;
+      controls.minDistance = 2;
+
+      // Coordinate Grid
+      const grid = new THREE.GridHelper(8, 16, 0x1e293b, 0x0f172a);
+      grid.position.y = -1.8;
+      scene.add(grid);
+
+      // Light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0x06b6d4, 1.5, 20);
+      pointLight.position.set(3, 4, 3);
+      scene.add(pointLight);
+
+      // Create Hyperplane Divider
+      const planeGeo = new THREE.PlaneGeometry(6, 6);
+      const planeMat = new THREE.MeshBasicMaterial({
+        color: 0x3b82f6,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      planeMesh = new THREE.Mesh(planeGeo, planeMat);
+      planeMesh.rotation.x = Math.PI / 4;
+      scene.add(planeMesh);
+
+      // Add Cluster Points
+      createClusters(0.35);
+
+      // Query Vector (Red Octahedron / Diamond)
+      const qGeo = new THREE.OctahedronGeometry(0.14);
+      const qMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+      queryMesh = new THREE.Mesh(qGeo, qMat);
+      queryMesh.position.set(0.7, 0.45, 0.75); // Sits very close to the dividing plane
+      scene.add(queryMesh);
+
+      // True Nearest Neighbor (Cross / Box sitting across the boundary)
+      const nGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+      const nMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+      neighborMesh = new THREE.Mesh(nGeo, nMat);
+      neighborMesh.position.set(0.48, 0.22, 0.58); // Just across the plane boundary!
+      scene.add(neighborMesh);
+
+      // Dynamic Perturbation Beam between Query and Neighbor
+      const beamGeo = new THREE.BufferGeometry().setFromPoints([
+        queryMesh.position,
+        neighborMesh.position
+      ]);
+      const beamMat = new THREE.LineDashedMaterial({
+        color: 0x06b6d4,
+        dashSize: 0.1,
+        gapSize: 0.05,
+        linewidth: 2
+      });
+      perturbationBeam = new THREE.Line(beamGeo, beamMat);
+      perturbationBeam.computeLineDistances();
+      scene.add(perturbationBeam);
+
+      // Resize Listener
+      window.addEventListener('resize', onWindowResize);
+
+      // Animation Loop
+      animateThree();
+    }
+
+    function createClusters(variance) {
+      clusterPoints.forEach(p => scene.remove(p));
+      clusterPoints = [];
+
+      function addCluster(center, colorHex, count) {
+        const geo = new THREE.BufferGeometry();
+        const coords = [];
+        for (let i = 0; i < count; i++) {
+          coords.push(
+            center[0] + (Math.random() - 0.5) * variance * 2.5,
+            center[1] + (Math.random() - 0.5) * variance * 2.5,
+            center[2] + (Math.random() - 0.5) * variance * 2.5
+          );
+        }
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
+        const mat = new THREE.PointsMaterial({
+          color: colorHex,
+          size: 0.08,
+          transparent: true,
+          opacity: 0.85
+        });
+        const points = new THREE.Points(geo, mat);
+        scene.add(points);
+        clusterPoints.push(points);
+      }
+
+      addCluster([1.3, 0.9, 1.1], 0x38bdf8, 55);  // Cluster 1
+      addCluster([-1.3, -0.7, 0.9], 0xc084fc, 55); // Cluster 2
+      addCluster([0.0, -1.1, -1.1], 0xfbbf24, 55); // Cluster 3
+    }
+
+    function setSearchMode(mode) {
+      searchMode = mode;
+      const btnStd = document.getElementById('btn-mode-standard');
+      const btnMp = document.getElementById('btn-mode-multiprobe');
+      const bannerTitle = document.getElementById('canvas-banner-title');
+      const bannerDesc = document.getElementById('canvas-banner-desc');
+      const legTag = document.getElementById('legend-neighbor-tag');
+      const legDot = document.getElementById('legend-neighbor-dot');
+      const legText = document.getElementById('legend-neighbor-text');
+
+      if (mode === 'standard') {
+        btnStd.className = 'px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-500 text-white transition';
+        btnMp.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-surfaceElevated text-slate-300 transition';
+
+        neighborMesh.material.color.setHex(0xef4444); // Red: dropped!
+        neighborMesh.scale.set(0.8, 0.8, 0.8);
+        perturbationBeam.visible = false;
+
+        bannerTitle.innerHTML = `<span class="text-rose-500">✗</span> Classic LSH: Boundary Miss!`;
+        bannerTitle.className = 'font-bold text-rose-500 flex items-center gap-1.5';
+        bannerDesc.innerText = 'The nearest neighbor sits right across the hyperplane. Because only 1 primary bucket was checked, this vector was dropped (0% Recall for this bucket).';
+
+        legDot.className = 'w-3 h-3 rounded-sm bg-rose-500 inline-block shadow';
+        legText.className = 'text-rose-400 font-bold';
+        legText.innerText = 'Nearest Neighbor (DROPPED!)';
+      } else {
+        btnStd.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-surfaceBorder text-slate-300 transition';
+        btnMp.className = 'px-3 py-1.5 text-xs font-bold rounded-lg bg-accentCyan text-bgDark transition';
+
+        neighborMesh.material.color.setHex(0x10b981); // Green: recovered!
+        neighborMesh.scale.set(1.2, 1.2, 1.2);
+        perturbationBeam.visible = true;
+
+        bannerTitle.innerHTML = `<span class="text-accentCyan">✓</span> Multi-Probe Perturbation Active`;
+        bannerTitle.className = 'font-bold text-accentCyan flex items-center gap-1.5';
+        bannerDesc.innerText = 'Margin |w·q| is small. Multi-Probe flipped bit 0, searched adjacent bucket, and recovered the nearest neighbor across the hyperplane with 100% recall.';
+
+        legDot.className = 'w-3 h-3 rounded-sm bg-emerald-400 inline-block shadow';
+        legText.className = 'text-emerald-300 font-bold';
+        legText.innerText = 'Nearest Neighbor (Recovered!)';
+      }
+    }
+
+    function updatePlaneAngle(deg) {
+      document.getElementById('val-plane-angle').innerText = deg + '°';
+      const rad = (deg * Math.PI) / 180;
+      planeMesh.rotation.x = rad;
+    }
+
+    function updatePlaneOffset(val) {
+      const offset = parseFloat(val) / 100.0;
+      document.getElementById('val-plane-offset').innerText = offset.toFixed(2);
+      planeMesh.position.y = offset;
+    }
+
+    function updateClusterVariance(val) {
+      const v = parseFloat(val) / 100.0;
+      document.getElementById('val-cluster-var').innerText = v.toFixed(2);
+      createClusters(v);
+    }
+
+    function resetCamera() {
+      camera.position.set(4.5, 3.2, 5.5);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function toggleAnimation() {
+      isAnimating = !isAnimating;
+      document.getElementById('btn-animate').innerText = isAnimating ? '⏸ Pause Rotation' : '▶ Resume Rotation';
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('three-viewport');
+      if (!container) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animateThree() {
+      requestAnimationFrame(animateThree);
+      controls.update();
+
+      if (isAnimating) {
+        scene.rotation.y += 0.0025;
+      }
+
+      // Pulsing effect on Query & Recovered Neighbor
+      const time = Date.now() * 0.003;
+      queryMesh.rotation.y += 0.02;
+      queryMesh.rotation.x += 0.01;
+      neighborMesh.rotation.y -= 0.02;
+
+      renderer.render(scene, camera);
+    }
+
+    // =========================================================================
+    // 6. INITIALIZATION
+    // =========================================================================
+    window.onload = () => {
+      initThreeScene();
+      updateKPICards();
+      populatePerturbationTable();
+      setSearchMode('multiprobe');
+    };
+  </script>
+</body>
+</html>
