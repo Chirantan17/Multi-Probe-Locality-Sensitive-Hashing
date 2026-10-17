@@ -1,0 +1,12 @@
+build/
+bin/
+*.exe
+*.obj
+*.o
+*.a
+*.tar.gz
+data/siftsmall/
+benchmarks/results.json
+.cache/
+__pycache__/
+.streamlit/
