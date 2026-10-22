@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenMP REQUIRED)
 
-# Enable AVX2 SIMD, OpenMP, and O3 release optimizations
 if (MSVC)
     add_compile_options(/arch:AVX2 /O2 /openmp)
 else()
@@ -14,10 +13,12 @@ else()
     add_link_options(-fopenmp)
 endif()
 
+include_directories(.)
 include_directories(backend/include)
 
-add_executable(lsh_bench
-    backend/src/main.cpp
-)
-
+# Executables
+add_executable(lsh_bench main.cpp)
 target_link_libraries(lsh_bench PRIVATE OpenMP::OpenMP_CXX)
+
+add_executable(test_correctness test_correctness.cpp)
+target_link_libraries(test_correctness PRIVATE OpenMP::OpenMP_CXX)

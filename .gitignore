@@ -7,6 +7,3 @@ bin/
 *.tar.gz
 data/siftsmall/
 benchmarks/results.json
-.cache/
-__pycache__/
-.streamlit/

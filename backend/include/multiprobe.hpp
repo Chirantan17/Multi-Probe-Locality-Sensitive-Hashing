@@ -1,68 +1,121 @@
 #pragma once
-#include "types.hpp"
-#include "lsh_index.hpp"
-#include "simd_metric.hpp"
+
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
+#include <stdexcept>
+#include "types.hpp"
 
 namespace lsh {
 
-struct BitPerturbation {
-    size_t bit_index;
-    float margin; // Distance to hyperplane boundary
+struct PerturbationCandidate {
+    HashCode bucket_code;
+    float cost;
+    uint8_t radius;
 
-    bool operator<(const BitPerturbation& other) const {
-        return margin < other.margin; // Smaller margin = higher priority to flip
+    bool operator<(const PerturbationCandidate& other) const {
+        return cost < other.cost;
     }
 };
 
 class MultiProbeRouter {
 public:
-    // Generate buckets to probe: primary bucket + perturbation buckets (Hamming radius 1 and 2)
-    static std::vector<HashCode> get_probe_buckets(
-        const LSHIndex& index,
-        size_t table_idx,
-        const float* query_data,
-        size_t max_probes) {
+    explicit MultiProbeRouter(size_t max_bits = 64) : max_bits_(max_bits) {}
 
-        std::vector<HashCode> buckets;
-        HashCode base_code = 0;
+    std::vector<HashCode> generate_probes(
+        const AlignedVector& query,
+        const std::vector<AlignedVector>& hyperplanes,
+        size_t probe_budget) const 
+    {
+        size_t k = hyperplanes.size();
+        if (k > 64 || k > max_bits_) {
+            throw std::invalid_argument("Hyperplane count K exceeds supported 64-bit integer limit.");
+        }
+        if (probe_budget == 0) return {};
 
-        std::vector<BitPerturbation> perturbations(index.hash_bits);
+        struct BitMargin {
+            size_t bit_index;
+            float margin;
+        };
 
-        for (size_t k = 0; k < index.hash_bits; ++k) {
-            float projection = simd::dot_product(index.hyperplanes[table_idx][k].raw(), query_data, index.dimension);
-            if (projection >= 0.0f) {
-                base_code |= (1ULL << k);
+        std::vector<BitMargin> margins(k);
+        HashCode primary_hash = 0;
+
+        for (size_t i = 0; i < k; ++i) {
+            float proj = 0.0f;
+            for (size_t d = 0; d < query.size(); ++d) {
+                proj += query[d] * hyperplanes[i][d];
             }
-            perturbations[k] = { k, std::abs(projection) };
+
+            if (proj >= 0.0f) {
+                primary_hash |= (1ULL << i);
+            }
+            margins[i] = {i, std::abs(proj)};
         }
 
-        // Primary bucket (Hamming distance 0)
-        buckets.push_back(base_code);
-        if (max_probes <= 1) return buckets;
+        std::vector<HashCode> selected_probes;
+        selected_probes.reserve(probe_budget);
+        selected_probes.push_back(primary_hash);
 
-        // Sort bits by margin ascending (least certain bits first)
-        std::sort(perturbations.begin(), perturbations.end());
+        if (probe_budget == 1) return selected_probes;
 
-        // Radius 1 probes: flip single least-certain bits
-        for (size_t i = 0; i < perturbations.size() && buckets.size() < max_probes; ++i) {
-            size_t bit = perturbations[i].bit_index;
-            buckets.push_back(base_code ^ (1ULL << bit));
+        std::sort(margins.begin(), margins.end(), [](const BitMargin& a, const BitMargin& b) {
+            return a.margin < b.margin;
+        });
+
+        std::vector<PerturbationCandidate> candidates;
+
+        // Radius 1: Single bit flips
+        for (size_t i = 0; i < k; ++i) {
+            HashCode perturbed = primary_hash ^ (1ULL << margins[i].bit_index);
+            candidates.push_back({perturbed, margins[i].margin, 1});
         }
 
-        // Radius 2 probes: flip pair of least-certain bits
-        for (size_t i = 0; i < perturbations.size() && buckets.size() < max_probes; ++i) {
-            for (size_t j = i + 1; j < perturbations.size() && buckets.size() < max_probes; ++j) {
-                size_t bit_i = perturbations[i].bit_index;
-                size_t bit_j = perturbations[j].bit_index;
-                buckets.push_back(base_code ^ (1ULL << bit_i) ^ (1ULL << bit_j));
+        // Radius 2: Pairwise bit flips sorted by combined margin cost
+        for (size_t i = 0; i < k; ++i) {
+            for (size_t j = i + 1; j < k; ++j) {
+                HashCode perturbed = primary_hash ^ (1ULL << margins[i].bit_index) ^ (1ULL << margins[j].bit_index);
+                float combined_cost = margins[i].margin + margins[j].margin;
+                candidates.push_back({perturbed, combined_cost, 2});
             }
         }
 
-        return buckets;
+        std::sort(candidates.begin(), candidates.end());
+
+        for (const auto& cand : candidates) {
+            if (selected_probes.size() >= probe_budget) break;
+            if (std::find(selected_probes.begin(), selected_probes.end(), cand.bucket_code) == selected_probes.end()) {
+                selected_probes.push_back(cand.bucket_code);
+            }
+        }
+
+        return selected_probes;
     }
+
+    // Static overload expected by main.cpp
+    static std::vector<HashCode> get_probe_buckets(
+        const AlignedVector& query,
+        const std::vector<AlignedVector>& hyperplanes,
+        size_t probe_budget)
+    {
+        MultiProbeRouter router;
+        return router.generate_probes(query, hyperplanes, probe_budget);
+    }
+
+    // Secondary static overload if base_hash is passed
+    static std::vector<HashCode> get_probe_buckets(
+        HashCode /*base_hash*/,
+        const AlignedVector& query,
+        const std::vector<AlignedVector>& hyperplanes,
+        size_t probe_budget)
+    {
+        MultiProbeRouter router;
+        return router.generate_probes(query, hyperplanes, probe_budget);
+    }
+
+private:
+    size_t max_bits_;
 };
 
 } // namespace lsh
