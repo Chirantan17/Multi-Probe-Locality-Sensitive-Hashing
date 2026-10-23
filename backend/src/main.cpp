@@ -1,7 +1,4 @@
-#include "types.hpp"
-#include "simd_metric.hpp"
-#include "lsh_index.hpp"
-#include "multiprobe.hpp"
+#include "lsh_engine.hpp"
 
 #include <iostream>
 #include <vector>
@@ -12,6 +9,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <string>
+#include <omp.h>
 
 using namespace lsh;
 
@@ -58,61 +56,13 @@ std::vector<Neighbor> brute_force_search(const std::vector<AlignedVector>& datas
     candidates.reserve(dataset.size());
 
     for (VectorId id = 0; id < dataset.size(); ++id) {
-        float dist = simd::cosine_distance(dataset[id].raw(), query.raw(), query.size());
+        float dist = simd::cosine_distance(dataset[id], query);
         candidates.push_back({id, dist});
     }
 
     std::partial_sort(candidates.begin(), candidates.begin() + top_k, candidates.end());
     candidates.resize(top_k);
     return candidates;
-}
-
-QueryResult execute_lsh_query(
-    const LSHIndex& index,
-    const std::vector<AlignedVector>& dataset,
-    const AlignedVector& query,
-    size_t top_k,
-    size_t probes_per_table) {
-
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    std::unordered_set<VectorId> candidate_ids;
-    size_t buckets_probed = 0;
-
-    for (size_t l = 0; l < index.num_tables; ++l) {
-        std::vector<HashCode> probe_buckets = MultiProbeRouter::get_probe_buckets(
-            index, l, query.raw(), probes_per_table);
-        
-        buckets_probed += probe_buckets.size();
-
-        for (HashCode code : probe_buckets) {
-            auto it = index.tables[l].find(code);
-            if (it != index.tables[l].end()) {
-                for (VectorId id : it->second) {
-                    candidate_ids.insert(id);
-                }
-            }
-        }
-    }
-
-    std::vector<Neighbor> scored_candidates;
-    scored_candidates.reserve(candidate_ids.size());
-
-    for (VectorId id : candidate_ids) {
-        float dist = simd::cosine_distance(dataset[id].raw(), query.raw(), query.size());
-        scored_candidates.push_back({id, dist});
-    }
-
-    size_t actual_k = std::min(top_k, scored_candidates.size());
-    if (actual_k > 0) {
-        std::partial_sort(scored_candidates.begin(), scored_candidates.begin() + actual_k, scored_candidates.end());
-        scored_candidates.resize(actual_k);
-    }
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    double latency_us = std::chrono::duration<double, std::micro>(end_time - start_time).count();
-
-    return { scored_candidates, candidate_ids.size(), buckets_probed, latency_us };
 }
 
 float compute_recall(const std::vector<Neighbor>& ground_truth, const std::vector<Neighbor>& approx) {
@@ -127,23 +77,8 @@ float compute_recall(const std::vector<Neighbor>& ground_truth, const std::vecto
     return static_cast<float>(matches) / static_cast<float>(ground_truth.size());
 }
 
-// Calculate approximate index memory footprint in MB
 double estimate_index_memory_mb(const LSHIndex& index) {
-    size_t total_bytes = 0;
-    // Hyperplanes
-    for (const auto& table_planes : index.hyperplanes) {
-        for (const auto& plane : table_planes) {
-            total_bytes += plane.size() * sizeof(float);
-        }
-    }
-    // Hash tables overhead
-    for (const auto& table : index.tables) {
-        total_bytes += table.size() * (sizeof(HashCode) + sizeof(std::vector<VectorId>));
-        for (const auto& [code, vec_ids] : table) {
-            total_bytes += vec_ids.capacity() * sizeof(VectorId);
-        }
-    }
-    return static_cast<double>(total_bytes) / (1024.0 * 1024.0);
+    return static_cast<double>(index.memory_bytes()) / (1024.0 * 1024.0);
 }
 
 int main(int argc, char* argv[]) {
@@ -173,10 +108,8 @@ int main(int argc, char* argv[]) {
     auto dataset = generate_dataset(NUM_VECTORS, DIMENSION);
     auto queries = generate_queries(dataset, NUM_QUERIES);
 
-    LSHIndex index(L, K, DIMENSION);
-    for (VectorId id = 0; id < dataset.size(); ++id) {
-        index.insert(id, dataset[id].raw());
-    }
+    LSHIndex index(DIMENSION, L, K);
+    index.build(dataset);
 
     double index_memory_mb = estimate_index_memory_mb(index);
     double raw_data_mb = (NUM_VECTORS * DIMENSION * sizeof(float)) / (1024.0 * 1024.0);
@@ -197,13 +130,13 @@ int main(int argc, char* argv[]) {
         auto t1 = std::chrono::high_resolution_clock::now();
         bf_total_latency += std::chrono::duration<double, std::micro>(t1 - t0).count();
 
-        auto std_res = execute_lsh_query(index, dataset, queries[q], TOP_K, 1);
-        std_total_latency += std_res.search_latency_us;
+        auto std_res = index.query(queries[q], dataset, TOP_K, 1);
+        std_total_latency += std_res.latency_us;
         std_total_recall += compute_recall(ground_truth, std_res.neighbors);
         std_candidates_avg += std_res.candidates_evaluated;
 
-        auto mp_res = execute_lsh_query(index, dataset, queries[q], TOP_K, PROBES);
-        mp_total_latency += mp_res.search_latency_us;
+        auto mp_res = index.query(queries[q], dataset, TOP_K, PROBES);
+        mp_total_latency += mp_res.latency_us;
         mp_total_recall += compute_recall(ground_truth, mp_res.neighbors);
         mp_candidates_avg += mp_res.candidates_evaluated;
     }
@@ -225,18 +158,19 @@ int main(int argc, char* argv[]) {
     std::cout << "========================================================\n";
 
     std::ofstream out("benchmarks/results.json");
-    out << "{\n";
-    out << "  \"num_vectors\": " << NUM_VECTORS << ",\n";
-    out << "  \"dimension\": " << DIMENSION << ",\n";
-    out << "  \"top_k\": " << TOP_K << ",\n";
-    out << "  \"raw_data_mb\": " << raw_data_mb << ",\n";
-    out << "  \"index_memory_mb\": " << index_memory_mb << ",\n";
-    out << "  \"brute_force\": { \"latency_us\": " << avg_bf_lat << ", \"recall\": 1.0 },\n";
-    out << "  \"standard_lsh\": { \"latency_us\": " << avg_std_lat << ", \"recall\": " << avg_std_rec << ", \"candidates\": " << (std_candidates_avg / NUM_QUERIES) << " },\n";
-    out << "  \"multiprobe_lsh\": { \"latency_us\": " << avg_mp_lat << ", \"recall\": " << avg_mp_rec << ", \"candidates\": " << (mp_candidates_avg / NUM_QUERIES) << " }\n";
-    out << "}\n";
-    out.close();
-
-    std::cout << "\n[4/4] Telemetry exported to 'benchmarks/results.json' successfully.\n";
+    if (out.is_open()) {
+        out << "{\n";
+        out << "  \"num_vectors\": " << NUM_VECTORS << ",\n";
+        out << "  \"dimension\": " << DIMENSION << ",\n";
+        out << "  \"top_k\": " << TOP_K << ",\n";
+        out << "  \"raw_data_mb\": " << raw_data_mb << ",\n";
+        out << "  \"index_memory_mb\": " << index_memory_mb << ",\n";
+        out << "  \"brute_force\": { \"latency_us\": " << avg_bf_lat << ", \"recall\": 1.0 },\n";
+        out << "  \"standard_lsh\": { \"latency_us\": " << avg_std_lat << ", \"recall\": " << avg_std_rec << ", \"candidates\": " << (std_candidates_avg / NUM_QUERIES) << " },\n";
+        out << "  \"multiprobe_lsh\": { \"latency_us\": " << avg_mp_lat << ", \"recall\": " << avg_mp_rec << ", \"candidates\": " << (mp_candidates_avg / NUM_QUERIES) << " }\n";
+        out << "}\n";
+        std::cout << "\n[4/4] Telemetry exported to 'benchmarks/results.json' successfully.\n";
+    }
+    
     return 0;
 }

@@ -13,12 +13,11 @@ else()
     add_link_options(-fopenmp)
 endif()
 
-include_directories(.)
 include_directories(backend/include)
 
 # Executables
-add_executable(lsh_bench main.cpp)
+add_executable(lsh_bench backend/src/main.cpp)
 target_link_libraries(lsh_bench PRIVATE OpenMP::OpenMP_CXX)
 
-add_executable(test_correctness test_correctness.cpp)
+add_executable(test_correctness backend/tests/test_correctness.cpp)
 target_link_libraries(test_correctness PRIVATE OpenMP::OpenMP_CXX)
