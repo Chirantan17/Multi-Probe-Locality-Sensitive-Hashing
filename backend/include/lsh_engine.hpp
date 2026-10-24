@@ -83,11 +83,9 @@ inline float cosine_distance(const AlignedVector& a, const AlignedVector& b) {
     float norm_b = norm(b.raw(), dim);
     if (norm_a <= 1e-8f || norm_b <= 1e-8f) return 1.0f;
     float sim = dot / (norm_a * norm_b);
-    sim = std::clamp(sim, -1.0f, 1.0f);
-    return 1.0f - sim;
+    return 1.0f - std::clamp(sim, -1.0f, 1.0f);
 }
 
-// Optimized cosine distance assuming unit-normalized vectors
 inline float cosine_distance_unit(const AlignedVector& a, const AlignedVector& b) {
     float dot = dot_product(a.raw(), b.raw(), a.size());
     return 1.0f - std::clamp(dot, -1.0f, 1.0f);
@@ -242,7 +240,7 @@ public:
         }
     }
 
-    // High-performance query with reusable visited-stamp buffer to eliminate heap allocations
+    // High-performance query with reusable visited-stamp array (zero heap allocation)
     QueryResult query_fast(
         const AlignedVector& q,
         const std::vector<AlignedVector>& dataset,
@@ -294,7 +292,6 @@ public:
         return {candidates, candidate_ids.size(), total_buckets, lat_us};
     }
 
-    // Standard interface
     QueryResult query(
         const AlignedVector& q,
         const std::vector<AlignedVector>& dataset,
@@ -305,15 +302,11 @@ public:
         return query_fast(q, dataset, top_k, probes_per_table, visited, 1);
     }
 
-    // Comprehensive memory accounting (hyperplanes, hash buckets, and vector ID storage)
     size_t memory_bytes() const {
         size_t bytes = 0;
-        // Hyperplane storage
         bytes += L_ * K_ * dim_ * sizeof(float);
-        // Table structures
         for (const auto& table : tables_) {
             bytes += sizeof(table);
-            // Hash bucket overhead + stored IDs
             bytes += table.bucket_count() * sizeof(void*);
             for (const auto& kv : table) {
                 bytes += sizeof(HashCode) + sizeof(std::vector<VectorId>);
