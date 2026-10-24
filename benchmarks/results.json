@@ -1,7 +1,7 @@
 {
   "corpus": "SIFT10K",
   "memory": {"classic_mb": 2.1173, "compact_mb": 0.391766, "reduction_pct": 81.4969},
-  "brute_force": {"avg_us": 609.572, "p99_us": 4250.7, "qps": 19745.3},
-  "classic_lsh": {"recall": 1, "avg_us": 438.091, "p99_us": 3288.6, "qps": 25181.3, "frac": 0.511428},
-  "multiprobe_lsh": {"recall": 0.998, "avg_us": 283.607, "p99_us": 482.2, "qps": 19750.7, "frac": 0.674351}
+  "brute_force": {"avg_us": 596.866, "p99_us": 3875.1, "qps": 20865.5},
+  "classic_lsh": {"recall": 1, "avg_us": 433.993, "p99_us": 4352, "qps": 20998.7, "frac": 0.511428},
+  "multiprobe_lsh": {"recall": 0.998, "avg_us": 291.769, "p99_us": 520, "qps": 23285.1, "frac": 0.674351}
 }

@@ -33,22 +33,26 @@ void test_dimension_mismatch() {
 }
 
 void test_visited_stamp_reuse() {
-    LSHIndex idx(4, 1, 2, 42); // dim=4, L=1, K=2
-    AlignedVector v = {1.0f, 0.0f, 0.0f, 0.0f};
+    LSHIndex idx(128, 2, 4, 42); // 2 tables, K=4
+    AlignedVector v(128, 0.1f);
     
-    // Insert identical vector multiple times to force collisions in the same bucket
-    std::vector<AlignedVector> dataset = {v, v, v};
-    idx.insert(0, v); idx.insert(1, v); idx.insert(2, v);
+    // Dataset with duplicate vectors to guarantee they map to identical buckets
+    std::vector<AlignedVector> ds = {v, v};
+    idx.build(ds);
+    std::vector<uint32_t> visited(ds.size(), 0);
     
-    std::vector<uint32_t> visited(dataset.size(), 0);
+    // Tag = 1: Despite 2 tables, engine should dedupe and evaluate exactly 2 unique candidate IDs
+    auto res1 = idx.query_fast(v, ds, 10, 1, visited, 1);
+    TEST_CHECK(res1.candidates_evaluated == 2, "Failed to evaluate exactly 2 unique candidates.");
     
-    // Query 1: should evaluate exactly 3 unique candidates
-    auto res1 = idx.query_fast(v, dataset, 10, 1, visited, 1);
-    TEST_CHECK(res1.candidates_evaluated == 3, "Engine failed to evaluate candidates on first query.");
+    // Tag = 2: Ensure engine successfully resets state against the identical array
+    auto res2 = idx.query_fast(v, ds, 10, 1, visited, 2);
+    TEST_CHECK(res2.candidates_evaluated == 2, "Failed to reuse visited array on next tag.");
     
-    // Query 2: advance tag to 2. Engine must correctly reset and evaluate exactly 3 candidates again
-    auto res2 = idx.query_fast(v, dataset, 10, 1, visited, 2);
-    TEST_CHECK(res2.candidates_evaluated == 3, "Engine failed to reuse visited array correctly (tag collision).");
+    // Wrap-around Vulnerability Test (Testing near UINT32_MAX)
+    visited[0] = 0xFFFFFFFE; visited[1] = 0xFFFFFFFE;
+    auto res3 = idx.query_fast(v, ds, 10, 1, visited, 0xFFFFFFFF);
+    TEST_CHECK(res3.candidates_evaluated == 2, "Failed deduplication near UINT32_MAX boundary.");
     std::cout << "[Test 3/5] Engine Visited-Stamp Deduplication Passed.\n";
 }
 

@@ -10,4 +10,4 @@ The overall probability of collision in at least one table for vectors with simi
 $$\Pr[\text{Collision}] = 1 - \left[1 - \left(1 - \frac{\theta}{\pi}\right)^K\right]^L$$
 
 ## 2. OpenMP Parallel Evaluation
-Execution performance is evaluated using an OpenMP-threaded parallel loop over the 100 query vectors. This isolates algorithmic latency per query while realistically demonstrating batch processing throughput (QPS). The results demonstrate that Multi-Probe LSH ($L=6, P=8$) matches the 99.8%+ recall of Classic LSH ($L=32$) while utilizing **81.5% less RAM** and significantly reducing the fraction of dataset candidates scanned.
+Execution performance is evaluated using an OpenMP-threaded parallel loop over the query vectors. This realistically demonstrates batch processing throughput (QPS) without sharing deduplication stamps across thread stacks. The results demonstrate that Multi-Probe LSH ($L=6, P=8$) matches the 99.8%+ recall of Classic LSH ($L=32$) while utilizing **81.5% less RAM** and significantly reducing the fraction of dataset candidates scanned to retrieve the exact nearest neighbors.

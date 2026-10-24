@@ -73,7 +73,7 @@ inline float cosine_distance_unit(const AlignedVector& a, const AlignedVector& b
     float dot = dot_product(a.raw(), b.raw(), a.size());
     return 1.0f - std::clamp(dot, -1.0f, 1.0f);
 }
-} // namespace simd
+}
 
 struct PerturbationCandidate {
     HashCode bucket_code;

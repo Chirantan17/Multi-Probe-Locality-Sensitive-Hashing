@@ -79,7 +79,7 @@ int main() {
     // Warmup
     for(size_t i=0; i<10; ++i) brute_force_search(dataset, queries[i], TOP_K);
     
-    // Brute Force 
+    // Brute Force (Parallelized for QPS baseline)
     auto t_bf_start = std::chrono::high_resolution_clock::now();
     #pragma omp parallel for schedule(dynamic)
     for (size_t q = 0; q < NUM_QUERIES; ++q) {
@@ -108,7 +108,6 @@ int main() {
                 cand_sum += res.candidates_evaluated;
             }
         }
-        
         qps = NUM_QUERIES / std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count();
         stats = compute_stats(lats);
         recall = r_sum / NUM_QUERIES;
@@ -123,11 +122,11 @@ int main() {
     run_benchmark(index_compact, 1, s6_rec, s6_st, s6_qps, s6_frac);
     run_benchmark(index_compact, MP_PROBES, mp_rec, mp_st, mp_qps, mp_frac);
     
-    std::cout << "Configuration                   | Recall@10 | Latency (Avg) | Latency (p99) | Cand Frac | OpenMP QPS \n";
+    std::cout << "Configuration                   | Recall@10 | Latency (Avg) | Latency (p99) | Cand Frac | OpenMP QPS\n";
     std::cout << "------------------------------------------------------------------------------------------------------\n";
-    std::cout << "Exact Brute-Force (Linear Scan) |    100.0% | " << std::setw(10) << bf_stats.avg << " us | " << std::setw(10) << bf_stats.p99 << " us |    100.0% | " << std::setw(10) << bf_qps << "\n";
-    std::cout << "Classic LSH (L=32, 1-Probe)     | " << std::setw(9) << (c_rec * 100.0f) << "% | " << std::setw(10) << c_st.avg << " us | " << std::setw(10) << c_st.p99 << " us | " << std::setw(8) << (c_frac * 100.0f) << "% | " << std::setw(10) << c_qps << "\n";
-    std::cout << "Multi-Probe LSH (L=6, 8-Probe)  | " << std::setw(9) << (mp_rec * 100.0f) << "% | " << std::setw(10) << mp_st.avg << " us | " << std::setw(10) << mp_st.p99 << " us | " << std::setw(8) << (mp_frac * 100.0f) << "% | " << std::setw(10) << mp_qps << "\n";
+    std::cout << "Exact Brute-Force (Linear Scan) |    100.0% | " << std::setw(10) << bf_stats.avg << " us | " << std::setw(10) << bf_stats.p99 << " us |    100.0% | " << std::setw(10) << static_cast<int>(bf_qps) << "\n";
+    std::cout << "Classic LSH (L=32, 1-Probe)     | " << std::setw(9) << (c_rec * 100.0f) << "% | " << std::setw(10) << c_st.avg << " us | " << std::setw(10) << c_st.p99 << " us | " << std::setw(8) << (c_frac * 100.0f) << "% | " << std::setw(10) << static_cast<int>(c_qps) << "\n";
+    std::cout << "Multi-Probe LSH (L=6, 8-Probe)  | " << std::setw(9) << (mp_rec * 100.0f) << "% | " << std::setw(10) << mp_st.avg << " us | " << std::setw(10) << mp_st.p99 << " us | " << std::setw(8) << (mp_frac * 100.0f) << "% | " << std::setw(10) << static_cast<int>(mp_qps) << "\n";
 
     std::filesystem::create_directories("benchmarks");
     std::ofstream out("benchmarks/results.json");
