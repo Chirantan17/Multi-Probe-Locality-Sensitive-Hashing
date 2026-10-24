@@ -1,9 +1,6 @@
 build/
-bin/
+data/
+*.zip
+*.tar.gz
 *.exe
 *.obj
-*.o
-*.a
-*.tar.gz
-data/siftsmall/
-benchmarks/results.json

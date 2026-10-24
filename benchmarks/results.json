@@ -1,7 +1,42 @@
 {
-  "corpus": "SIFT10K",
-  "memory": {"classic_mb": 2.1173, "compact_mb": 0.391766, "reduction_pct": 81.4969},
-  "brute_force": {"avg_us": 596.866, "p99_us": 3875.1, "qps": 20865.5},
-  "classic_lsh": {"recall": 1, "avg_us": 433.993, "p99_us": 4352, "qps": 20998.7, "frac": 0.511428},
-  "multiprobe_lsh": {"recall": 0.998, "avg_us": 291.769, "p99_us": 520, "qps": 23285.1, "frac": 0.674351}
+  "corpus": "INRIA SIFT10K",
+  "num_vectors": 10000,
+  "dimension": 128,
+  "num_queries": 100,
+  "threads": 16,
+  "entropy": {
+    "uncentered_non_empty": 168,
+    "uncentered_max_bucket": 1610,
+    "uncentered_bits": 5.4516,
+    "centered_non_empty": 255,
+    "centered_max_bucket": 317,
+    "centered_bits": 7.1599
+  },
+  "memory": {
+    "raw_dataset_mb": 4.8828,
+    "classic_index_mb": 2.1173,
+    "compact_index_mb": 0.3918,
+    "index_reduction_pct": 81.4969,
+    "total_reduction_pct": 24.6501,
+    "process_rss_mb": 25.0859
+  },
+  "brute_force": { "recall": 100.0, "st_avg_us": 180.8650, "st_p95_us": 258.4000, "mt_qps": 33333.1002, "cand_frac_pct": 100.0 },
+  "uncentered": {
+    "classic_l32_p1": { "recall": 100.0000, "st_avg_us": 274.4630, "st_p95_us": 438.0350, "mt_qps": 27180.4127, "cand_frac_pct": 51.1428 },
+    "compact_l6_p1": { "recall": 82.9000, "st_avg_us": 164.7550, "st_p95_us": 359.6150, "mt_qps": 59068.1410, "cand_frac_pct": 22.1122 },
+    "multiprobe_l6_p8_sq": { "recall": 99.8000, "st_avg_us": 381.7370, "st_p95_us": 652.9000, "mt_qps": 23559.9010, "cand_frac_pct": 67.4429 },
+    "multiprobe_l6_p8_lin": { "recall": 99.8000, "st_avg_us": 245.2500, "st_p95_us": 316.9500, "mt_qps": 26743.4024, "cand_frac_pct": 67.4351 }
+  },
+  "centered": {
+    "classic_l32_p1": { "recall": 98.0000, "st_avg_us": 88.0120, "st_p95_us": 128.2900, "mt_qps": 53282.1824, "cand_frac_pct": 25.1931 },
+    "compact_l6_p1": { "recall": 64.4000, "st_avg_us": 24.6980, "st_p95_us": 41.5100, "mt_qps": 217803.2366, "cand_frac_pct": 6.5919 },
+    "multiprobe_l6_p8": { "recall": 97.4000, "st_avg_us": 92.1520, "st_p95_us": 143.8100, "mt_qps": 54977.0746, "cand_frac_pct": 27.4512 }
+  },
+  "scaling_100k": {
+    "bf_us": 5329.8795,
+    "mp_us": 615.0865,
+    "speedup": 8.6653,
+    "recall": 91.5000,
+    "cand_frac_pct": 6.8006
+  }
 }

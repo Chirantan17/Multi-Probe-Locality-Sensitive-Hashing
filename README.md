@@ -1,49 +1,33 @@
-# High-Performance Multi-Probe LSH Vector Search Engine
+# High-Performance Multi-Probe LSH Vector Search Engine (CS G526)
 
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
-[![Hardware](https://img.shields.io/badge/Hardware-AVX2%20%2B%20FMA-orange.svg)](#2-key-architectural-features)
-[![Parallel](https://img.shields.io/badge/Parallel-OpenMP-green.svg)](#2-key-architectural-features)
-[![Coursework](https://img.shields.io/badge/Coursework-BITS%20Pilani%20CS%20G526-red.svg)](report/project_report.md)
-[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+An AVX2 SIMD-accelerated Approximate Nearest Neighbor (ANN) engine in C++20 implementing Random-Hyperplane LSH (SimHash) and Margin-Guided Multi-Probe LSH (Lv et al., 2007), evaluated on the real-world **INRIA SIFT10K** benchmark and scaled up to $N = 100,000$ vectors.
 
-An AVX2 SIMD-accelerated Approximate Nearest Neighbor (ANN) search engine implementing Locality-Sensitive Hashing (LSH) and margin-guided Multi-Probe perturbation routing in modern C++20, paired with an interactive 3D WebGL diagnostic workbench.
+## Key Engineering & Algorithmic Highlights
 
----
+- **True 32-Byte Heap Alignment:** Custom `aligned_allocator<float, 32>` guarantees 32-byte alignment for every vector allocation, enabling hardware-aligned `_mm256_load_ps` + `_mm256_fmadd_ps` kernels.
+- **Zero-Allocation Hot Query Path:** Per-thread `QueryScratchpad` pre-allocates visited stamps, margins, candidate perturbations, and neighbor buffers outside the timed loop.
+- **Hardened Visited-Stamp Rollover:** Monotonic 32-bit query tags reject `0` and automatically zero the stamp buffer upon `0xFFFFFFFF -> 1` wrap-around.
+- **Mean-Centered Hyperplane Partitioning:** Eliminates SIFT's non-negative orthant skew, raising 8-bit bucket Shannon entropy from **5.45 bits** to **7.16 bits** and cutting candidate scans from **67.44%** to **27.45%**.
 
-## 1. Executive Overview
+## Empirical Summary on INRIA SIFT10K ($K=8$, 5-Trial Medians)
 
-High-dimensional vector similarity retrieval is the computational backbone of modern retrieval-augmented generation (RAG), vector databases, search recommendation engines, and high-throughput biometrics.
+| Configuration | Index RAM | Recall@10 | Single-Thread Avg ($\mu$s) | Candidate Fraction | OpenMP Batch QPS |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Exact Brute-Force** | 0.00 MB | 100.00% | 180.87 $\mu$s | 100.00% | 33333 |
+| **Uncentered Classic LSH ($L=32, P=1$)** | 2.12 MB | 100.00% | 274.46 $\mu$s | 51.14% | 27180 |
+| **Uncentered Compact LSH ($L=6, P=1$)** | 0.39 MB | 82.90% | 164.75 $\mu$s | 22.11% | 59068 |
+| **Uncentered Multi-Probe ($L=6, P=8$)** | 0.39 MB | **99.80%** | 381.74 $\mu$s | 67.44% | 23559 |
+| **Centered Classic LSH ($L=32, P=1$)** | 2.17 MB | 98.00% | 88.01 $\mu$s | 25.19% | 53282 |
+| **Centered Compact LSH ($L=6, P=1$)** | 0.41 MB | 64.40% | 24.70 $\mu$s | 6.59% | 217803 |
+| **Centered Multi-Probe ($L=6, P=8$)** | 0.41 MB | **97.40%** | **92.15 $\mu$s** | **27.45%** | 54977 |
 
-- **The Problem:** Exact brute-force search computes distances across every vector, scaling at $\mathcal{O}(N \cdot d)$ time per query. Traditional tree-based spatial indices ($k$-d trees, R-trees) break down due to the *Curse of Dimensionality* ($d > 20$), degrading to linear scans.
-- **The Bottleneck in Classic LSH:** Standard random projection LSH suffers from boundary-miss errors. To reach high recall ($\ge 90\%$), standard LSH requires building dozens of independent hash tables ($L \gg 30$), resulting in excessive RAM consumption.
-- **The Solution:** This engine implements **Multi-Probe LSH**. By sorting projection margins to identify the least-certain boundary hyperplanes, it systematically probes neighboring Hamming-1 and Hamming-2 buckets. This achieves $\ge 90\%$ recall with up to an **$80\%$ reduction in index memory footprint** compared to classic multi-table LSH.
+See [`report/project_report.md`](report/project_report.md) for full theoretical derivations, parameter sweeps, and scaling benchmarks up to $N = 100,000$.
 
----
+## Build & Verify
 
-## 2. Key Architectural Features
-
-- **AVX2 Vectorized Kernels:** Hand-tuned `_mm256_fmadd_ps` fused multiply-add intrinsics executing 8 single-precision float operations per clock cycle for cosine distance reranking.
-- **32-Byte Memory Alignment:** Allocations enforced with `alignas(32)` to enable direct aligned vector loads (`_mm256_load_ps`) with zero cache-line split penalties.
-- **Sublinear Candidate Pruning:** Dynamically filters large vector corpora down to a small fraction of candidate items before exact scoring.
-- **Multi-Probe Perturbation Router:** Intelligently constructs query-dependent probe sequences based on projection distance to hyperplane boundaries: $\vert{}w_i^T q\vert{}$.
-- **Multi-Core Query Batching:** OpenMP multi-threading parallelizes query streams across CPU cores, measuring QPS and latency distributions (p50, p95, p99).
-- **Visual Diagnostics:** Standalone 60 FPS WebGL / Three.js 3D boundary diagnostic playground (`index.html`).
-
----
-
-## 3. End-to-End Pipeline Architecture
-
-```text
-[ High-Dim Dataset ] ---> [ Ingestion Engine ] ---> [ AVX2 Projection Engine ]
-                                                          |
-                                                          v
-[ Query Vector ] ----> [ Multi-Probe Router ] ------> [ Compact Hash Tables ]
-                                                          |
-                                                          v
-                                                [ Candidate Shortlist ]
-                                                          |
-                                                          v
-                                          [ SIMD Reranker (Top-K) ]
-                                                          |
-                                                          v
-                                          [ Visual Diagnostics Dashboard ]
+```powershell
+cmake -B build -S .
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure
+.\build\lsh_bench.exe
+```

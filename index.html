@@ -3,70 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Probe LSH Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Multi-Probe LSH Telemetry Dashboard (CS G526)</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 2rem; }
-        .header { text-align: center; margin-bottom: 2rem; border-bottom: 1px solid #334155; padding-bottom: 1rem; }
-        .header h1 { margin: 0; color: #38bdf8; font-size: 2.5rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .card { background: #1e293b; padding: 1.5rem; border-radius: 12px; border: 1px solid #334155; }
-        .card h3 { margin-top: 0; color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .card .value { font-size: 2.5rem; font-weight: bold; color: #fff; margin: 0.5rem 0; }
-        .card .highlight { color: #10b981; }
-        .chart-container { background: #1e293b; padding: 1.5rem; border-radius: 12px; border: 1px solid #334155; margin-top: 2rem; }
-        canvas { max-height: 400px; }
+        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --green: #10b981; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 2rem; line-height: 1.5; }
+        .header { max-width: 1100px; margin: 0 auto 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+        .header h1 { margin: 0 0 0.25rem; color: var(--accent); }
+        .grid { max-width: 1100px; margin: 0 auto 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+        .card h3 { margin: 0; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
+        .card .val { font-size: 2rem; font-weight: 700; margin: 0.4rem 0; color: var(--green); }
+        .card .sub { font-size: 0.85rem; color: var(--muted); margin: 0; }
+        .panel { max-width: 1100px; margin: 0 auto 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.92rem; }
+        th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--accent); font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Multi-Probe LSH Telemetry (K=8)</h1>
-        <p>OpenMP Parallel Batch Validation on INRIA SIFT10K</p>
+        <h1>Multi-Probe LSH Telemetry Workbench</h1>
+        <p style="color: var(--muted); margin: 0;">Zero-Dependency Offline Viewer — Reads Directly from <code>benchmarks/results.json</code></p>
     </div>
+
     <div class="grid">
         <div class="card">
-            <h3>Index RAM Reduction</h3>
-            <div class="value highlight" id="ram-reduction">--%</div>
-            <p style="color: #94a3b8; margin: 0; font-size: 0.9rem;">From <span id="ram-classic">--</span> MB to <span id="ram-compact">--</span> MB</p>
+            <h3>Index RAM Saved (L=6 vs L=32)</h3>
+            <div class="val" id="idx-ram-saved">--%</div>
+            <p class="sub">Total Footprint Saved: <span id="tot-ram-saved">--%</span></p>
         </div>
         <div class="card">
-            <h3>Multi-Probe Recall@10</h3>
-            <div class="value highlight" id="recall-mp">--%</div>
+            <h3>Uncentered MP Recall@10</h3>
+            <div class="val" id="raw-mp-rec">--%</div>
+            <p class="sub">Recovers from <span id="raw-s6-rec">--%</span> (1-Probe)</p>
         </div>
         <div class="card">
-            <h3>Candidate Fraction Scanned</h3>
-            <div class="value" id="frac-mp">--%</div>
-            <p style="color: #94a3b8; margin: 0; font-size: 0.9rem;">Algorithmic work reduction</p>
+            <h3>Centered MP Candidate Scan</h3>
+            <div class="val" id="cen-mp-frac">--%</div>
+            <p class="sub">Recall@10: <span id="cen-mp-rec">--%</span></p>
         </div>
         <div class="card">
-            <h3>OpenMP Batch Throughput</h3>
-            <div class="value" id="bf-qps">-- QPS</div>
+            <h3>N=100K Scaling Speedup</h3>
+            <div class="val" id="scale-speedup">--x</div>
+            <p class="sub">MP-LSH vs. AVX2 Brute Force</p>
         </div>
     </div>
-    <div class="chart-container"><canvas id="latencyChart"></canvas></div>
+
+    <div class="panel">
+        <h2 style="margin-top:0; font-size:1.15rem;">4-Way Ablation Comparison (Single-Thread Service Latency vs. Multi-Thread OpenMP QPS)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Configuration</th>
+                    <th>Recall@10</th>
+                    <th>ST Avg Latency (µs)</th>
+                    <th>ST p95 Latency (µs)</th>
+                    <th>Candidate Fraction</th>
+                    <th>OpenMP Batch QPS</th>
+                </tr>
+            </thead>
+            <tbody id="ablation-tbody">
+                <tr><td colspan="6">Loading benchmarks/results.json...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
     <script>
         fetch('./benchmarks/results.json')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('ram-reduction').innerText = data.memory.reduction_pct.toFixed(1) + '%';
-                document.getElementById('ram-classic').innerText = data.memory.classic_mb.toFixed(2);
-                document.getElementById('ram-compact').innerText = data.memory.compact_mb.toFixed(2);
-                document.getElementById('recall-mp').innerText = (data.multiprobe_lsh.recall * 100).toFixed(1) + '%';
-                document.getElementById('frac-mp').innerText = (data.multiprobe_lsh.frac * 100).toFixed(2) + '%';
-                document.getElementById('bf-qps').innerText = Math.round(data.multiprobe_lsh.qps).toLocaleString();
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById('idx-ram-saved').textContent = d.memory.index_reduction_pct.toFixed(1) + '%';
+                document.getElementById('tot-ram-saved').textContent = d.memory.total_reduction_pct.toFixed(1) + '%';
+                document.getElementById('raw-mp-rec').textContent = d.uncentered.multiprobe_l6_p8_sq.recall.toFixed(2) + '%';
+                document.getElementById('raw-s6-rec').textContent = d.uncentered.compact_l6_p1.recall.toFixed(2) + '%';
+                document.getElementById('cen-mp-frac').textContent = d.centered.multiprobe_l6_p8.cand_frac_pct.toFixed(2) + '%';
+                document.getElementById('cen-mp-rec').textContent = d.centered.multiprobe_l6_p8.recall.toFixed(2) + '%';
+                document.getElementById('scale-speedup').textContent = d.scaling_100k.speedup.toFixed(2) + 'x';
 
-                new Chart(document.getElementById('latencyChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['Exact Brute-Force', 'Classic LSH (L=32)', 'Multi-Probe LSH (L=6)'],
-                        datasets: [
-                            { label: 'Avg Latency (µs)', data: [data.brute_force.avg_us, data.classic_lsh.avg_us, data.multiprobe_lsh.avg_us], backgroundColor: '#38bdf8' },
-                            { label: 'p99 Latency (µs)', data: [data.brute_force.p99_us, data.classic_lsh.p99_us, data.multiprobe_lsh.p99_us], backgroundColor: '#f43f5e' }
-                        ]
-                    },
-                    options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } }, title: { display: true, text: 'Query Latency Comparison (Lower is Better)', color: '#fff' } }, scales: { y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } } } }
-                });
-            }).catch(e => console.error(e));
+                const rows = [
+                    ['Exact Brute-Force (Linear Scan)', d.brute_force],
+                    ['Uncentered Classic LSH (L=32, P=1)', d.uncentered.classic_l32_p1],
+                    ['Uncentered Compact LSH (L=6, P=1)', d.uncentered.compact_l6_p1],
+                    ['Uncentered Multi-Probe LSH (L=6, P=8 Sq)', d.uncentered.multiprobe_l6_p8_sq],
+                    ['Centered Classic LSH (L=32, P=1)', d.centered.classic_l32_p1],
+                    ['Centered Compact LSH (L=6, P=1)', d.centered.compact_l6_p1],
+                    ['Centered Multi-Probe LSH (L=6, P=8)', d.centered.multiprobe_l6_p8]
+                ];
+                const tbody = document.getElementById('ablation-tbody');
+                tbody.innerHTML = rows.map(([name, m]) => `
+                    <tr>
+                        <td><strong>${name}</strong></td>
+                        <td>${m.recall.toFixed(2)}%</td>
+                        <td>${m.st_avg_us.toFixed(2)} µs</td>
+                        <td>${m.st_p95_us.toFixed(2)} µs</td>
+                        <td>${m.cand_frac_pct.toFixed(2)}%</td>
+                        <td>${Math.round(m.mt_qps).toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            })
+            .catch(err => {
+                document.getElementById('ablation-tbody').innerHTML =
+                    '<tr><td colspan="6">Serve via local HTTP server (e.g. VS Code Live Server) to load benchmarks/results.json.</td></tr>';
+            });
     </script>
 </body>
 </html>
