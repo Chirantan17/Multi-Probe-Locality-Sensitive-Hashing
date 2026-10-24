@@ -1,73 +1,82 @@
-#include <iostream>
-#include <cassert>
-#include <cmath>
-#include <vector>
 #include "lsh_engine.hpp"
+#include <iostream>
+#include <cmath>
+#include <cstdlib>
 
-void test_metrics() {
-    std::cout << "[Test 1/3] Testing SIMD Cosine Distance & Dot Products...\n";
-    lsh::AlignedVector a(128, 0.0f);
-    lsh::AlignedVector b(128, 0.0f);
-    a[0] = 1.0f;
-    b[0] = 1.0f;
+#define TEST_CHECK(cond, msg) \
+    do { if (!(cond)) { std::cerr << "[FAIL] " << msg << "\n"; std::exit(1); } } while(0)
 
-    float d_identical = lsh::simd::cosine_distance(a, b);
-    assert(std::abs(d_identical) < 1e-4f);
+using namespace lsh;
 
-    b[0] = -1.0f;
-    float d_opposite = lsh::simd::cosine_distance(a, b);
-    assert(std::abs(d_opposite - 2.0f) < 1e-4f);
+void test_simd_vs_scalar() {
+    AlignedVector a(131, 0.1f); 
+    AlignedVector b(131, 0.2f);
+    a[130] = 0.9f; b[130] = 0.5f;
+    float simd_dist = simd::cosine_distance_unit(a, b);
+    float scal_dot = simd::scalar_dot_product(a.raw(), b.raw(), 131);
+    float scal_dist = 1.0f - std::clamp(scal_dot, -1.0f, 1.0f);
+    TEST_CHECK(std::abs(simd_dist - scal_dist) < 1e-5f, "SIMD and Scalar distance mismatch.");
+    std::cout << "[Test 1/5] SIMD Tail Vector Agreement Passed.\n";
+}
 
-    b[0] = 0.0f;
-    b[1] = 1.0f;
-    float d_orthogonal = lsh::simd::cosine_distance(a, b);
-    assert(std::abs(d_orthogonal - 1.0f) < 1e-4f);
+void test_dimension_mismatch() {
+    LSHIndex idx(128, 1, 8);
+    AlignedVector bad_vec(120);
+    bool caught = false;
+    try { idx.hash_vector(0, bad_vec); } catch (const std::invalid_argument&) { caught = true; }
+    TEST_CHECK(caught, "Failed to catch dimension mismatch.");
+    
+    bool caught_k = false;
+    try { LSHIndex idx_bad(128, 1, 65); } catch (const std::invalid_argument&) { caught_k = true; }
+    TEST_CHECK(caught_k, "Failed to catch K > 64 constructor violation.");
+    std::cout << "[Test 2/5] Dimension & K Bounds Exceptions Passed.\n";
+}
 
-    std::cout << "  --> Passed!\n";
+void test_visited_stamp_reuse() {
+    LSHIndex idx(4, 1, 2, 42); // dim=4, L=1, K=2
+    AlignedVector v = {1.0f, 0.0f, 0.0f, 0.0f};
+    
+    // Insert identical vector multiple times to force collisions in the same bucket
+    std::vector<AlignedVector> dataset = {v, v, v};
+    idx.insert(0, v); idx.insert(1, v); idx.insert(2, v);
+    
+    std::vector<uint32_t> visited(dataset.size(), 0);
+    
+    // Query 1: should evaluate exactly 3 unique candidates
+    auto res1 = idx.query_fast(v, dataset, 10, 1, visited, 1);
+    TEST_CHECK(res1.candidates_evaluated == 3, "Engine failed to evaluate candidates on first query.");
+    
+    // Query 2: advance tag to 2. Engine must correctly reset and evaluate exactly 3 candidates again
+    auto res2 = idx.query_fast(v, dataset, 10, 1, visited, 2);
+    TEST_CHECK(res2.candidates_evaluated == 3, "Engine failed to reuse visited array correctly (tag collision).");
+    std::cout << "[Test 3/5] Engine Visited-Stamp Deduplication Passed.\n";
 }
 
 void test_multiprobe_ordering() {
-    std::cout << "[Test 2/3] Testing Multi-Probe Cost-Based Ordering...\n";
-    lsh::MultiProbeRouter router;
-
-    lsh::AlignedVector query = {1.0f, 0.0f, 0.0f};
-    std::vector<lsh::AlignedVector> planes = {
-        {0.05f, 0.0f, 0.0f},
-        {0.10f, 0.0f, 0.0f},
-        {0.90f, 0.0f, 0.0f}
-    };
-
-    auto probes = router.generate_probes(query, planes, 4);
-
-    assert(probes.size() == 4);
-    assert(probes[0] == 0b111);
-    assert(probes[1] == 0b110);
-    assert(probes[2] == 0b101);
-    assert(probes[3] == 0b100);
-
-    std::cout << "  --> Passed! Multi-probe correctly ranked radius-2 before high-margin radius-1.\n";
+    std::vector<AlignedVector> hyperplanes(4, AlignedVector(4));
+    hyperplanes[0] = {1.0f, 0.0f, 0.0f, 0.0f}; hyperplanes[1] = {0.0f, 1.0f, 0.0f, 0.0f};
+    hyperplanes[2] = {0.0f, 0.0f, 1.0f, 0.0f}; hyperplanes[3] = {0.0f, 0.0f, 0.0f, 1.0f};
+    AlignedVector query = {0.9f, 0.1f, 0.2f, 0.3f};
+    auto probes = MultiProbeRouter::get_probe_buckets(query, hyperplanes, 3);
+    TEST_CHECK(probes.size() == 3, "Probe budget mismatch.");
+    TEST_CHECK(probes[0] == 15, "Primary hash failure.");
+    TEST_CHECK(probes[1] == (15 ^ (1ULL << 1)), "Margin perturbation ranking failure.");
+    std::cout << "[Test 4/5] Multi-Probe Margin Perturbation Passed.\n";
 }
 
-void test_probe_budget_and_uniqueness() {
-    std::cout << "[Test 3/3] Testing Probe Uniqueness & Budget...\n";
-    lsh::MultiProbeRouter router;
-    lsh::AlignedVector query = {0.5f, 0.2f};
-    std::vector<lsh::AlignedVector> planes = {{1.0f, 0.0f}, {0.0f, 1.0f}};
-
-    auto p1 = router.generate_probes(query, planes, 1);
-    assert(p1.size() == 1);
-
-    auto p_all = router.generate_probes(query, planes, 16);
-    assert(p_all.size() == 4);
-
-    std::cout << "  --> Passed!\n";
+void test_minhash_jaccard() {
+    MinHash minhash(64, 42);
+    auto sig1 = minhash.compute_signature({1, 2, 3, 4, 5, 6, 7, 8});
+    auto sig2 = minhash.compute_signature({1, 2, 3, 4, 9, 10, 11, 12});
+    float est_sim = MinHash::jaccard_similarity(sig1, sig2);
+    TEST_CHECK(est_sim > 0.15f && est_sim < 0.55f, "MinHash Jaccard bounds failed.");
+    std::cout << "[Test 5/5] MinHash Set Shingling Passed.\n";
 }
 
 int main() {
-    std::cout << "=== Running Multi-Probe LSH Correctness Tests ===\n";
-    test_metrics();
-    test_multiprobe_ordering();
-    test_probe_budget_and_uniqueness();
+    std::cout << "=== Running Production Correctness Suite (NDEBUG Proof) ===\n";
+    test_simd_vs_scalar(); test_dimension_mismatch(); test_visited_stamp_reuse();
+    test_multiprobe_ordering(); test_minhash_jaccard();
     std::cout << "=== All Unit Tests Passed Successfully! ===\n";
     return 0;
 }
