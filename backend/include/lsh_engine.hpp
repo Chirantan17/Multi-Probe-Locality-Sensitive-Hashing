@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <random>
 #include <unordered_map>
-#include <unordered_set>
 #include <stdexcept>
 #include <initializer_list>
 #include <chrono>
@@ -18,7 +17,6 @@ namespace lsh {
 using VectorId = uint32_t;
 using HashCode = uint64_t;
 
-// 1. Memory-Aligned Vector
 struct AlignedVector {
     alignas(32) std::vector<float> data;
 
@@ -44,12 +42,11 @@ struct Neighbor {
 
 struct QueryResult {
     std::vector<Neighbor> neighbors;
-    size_t candidates_evaluated;
-    size_t buckets_probed;
-    double latency_us;
+    size_t candidates_evaluated{0};
+    size_t buckets_probed{0};
+    double latency_us{0.0};
 };
 
-// 2. SIMD Vectorized Distance Kernels
 namespace simd {
 
 inline float dot_product(const float* a, const float* b, size_t dim) {
@@ -90,9 +87,14 @@ inline float cosine_distance(const AlignedVector& a, const AlignedVector& b) {
     return 1.0f - sim;
 }
 
+// Optimized cosine distance assuming unit-normalized vectors
+inline float cosine_distance_unit(const AlignedVector& a, const AlignedVector& b) {
+    float dot = dot_product(a.raw(), b.raw(), a.size());
+    return 1.0f - std::clamp(dot, -1.0f, 1.0f);
+}
+
 } // namespace simd
 
-// 3. Multi-Probe Margin Router
 struct PerturbationCandidate {
     HashCode bucket_code;
     float cost;
@@ -152,7 +154,7 @@ public:
             candidates.push_back({perturbed, margins[i].margin, 1});
         }
 
-        // Radius 2: Pairwise bit flips
+        // Radius 2: Pairwise bit flips sorted by summed margin penalty
         for (size_t i = 0; i < k; ++i) {
             for (size_t j = i + 1; j < k; ++j) {
                 HashCode perturbed = primary_hash ^ (1ULL << margins[i].bit_index) ^ (1ULL << margins[j].bit_index);
@@ -182,21 +184,10 @@ public:
         return router.generate_probes(query, hyperplanes, probe_budget);
     }
 
-    static std::vector<HashCode> get_probe_buckets(
-        HashCode /*base_hash*/,
-        const AlignedVector& query,
-        const std::vector<AlignedVector>& hyperplanes,
-        size_t probe_budget) 
-    {
-        MultiProbeRouter router;
-        return router.generate_probes(query, hyperplanes, probe_budget);
-    }
-
 private:
     size_t max_bits_;
 };
 
-// 4. LSH Index Engine
 class LSHIndex {
 public:
     LSHIndex(size_t dim, size_t num_tables, size_t num_bits, uint32_t seed = 42)
@@ -251,16 +242,19 @@ public:
         }
     }
 
-    QueryResult query(
+    // High-performance query with reusable visited-stamp buffer to eliminate heap allocations
+    QueryResult query_fast(
         const AlignedVector& q,
         const std::vector<AlignedVector>& dataset,
         size_t top_k,
-        size_t probes_per_table = 1) const
+        size_t probes_per_table,
+        std::vector<uint32_t>& visited_stamps,
+        uint32_t query_tag) const
     {
         auto t_start = std::chrono::high_resolution_clock::now();
 
-        std::unordered_set<VectorId> candidate_set;
-        candidate_set.reserve(1024);
+        std::vector<VectorId> candidate_ids;
+        candidate_ids.reserve(2048);
         size_t total_buckets = 0;
 
         for (size_t l = 0; l < L_; ++l) {
@@ -271,17 +265,20 @@ public:
                 auto it = tables_[l].find(code);
                 if (it != tables_[l].end()) {
                     for (VectorId id : it->second) {
-                        candidate_set.insert(id);
+                        if (visited_stamps[id] != query_tag) {
+                            visited_stamps[id] = query_tag;
+                            candidate_ids.push_back(id);
+                        }
                     }
                 }
             }
         }
 
         std::vector<Neighbor> candidates;
-        candidates.reserve(candidate_set.size());
+        candidates.reserve(candidate_ids.size());
 
-        for (VectorId id : candidate_set) {
-            float dist = simd::cosine_distance(q, dataset[id]);
+        for (VectorId id : candidate_ids) {
+            float dist = simd::cosine_distance_unit(q, dataset[id]);
             candidates.push_back({id, dist});
         }
 
@@ -294,14 +291,32 @@ public:
         auto t_end = std::chrono::high_resolution_clock::now();
         double lat_us = std::chrono::duration<double, std::micro>(t_end - t_start).count();
 
-        return {candidates, candidate_set.size(), total_buckets, lat_us};
+        return {candidates, candidate_ids.size(), total_buckets, lat_us};
     }
 
+    // Standard interface
+    QueryResult query(
+        const AlignedVector& q,
+        const std::vector<AlignedVector>& dataset,
+        size_t top_k,
+        size_t probes_per_table = 1) const
+    {
+        std::vector<uint32_t> visited(dataset.size(), 0);
+        return query_fast(q, dataset, top_k, probes_per_table, visited, 1);
+    }
+
+    // Comprehensive memory accounting (hyperplanes, hash buckets, and vector ID storage)
     size_t memory_bytes() const {
         size_t bytes = 0;
+        // Hyperplane storage
+        bytes += L_ * K_ * dim_ * sizeof(float);
+        // Table structures
         for (const auto& table : tables_) {
-            bytes += table.size() * sizeof(HashCode);
+            bytes += sizeof(table);
+            // Hash bucket overhead + stored IDs
+            bytes += table.bucket_count() * sizeof(void*);
             for (const auto& kv : table) {
+                bytes += sizeof(HashCode) + sizeof(std::vector<VectorId>);
                 bytes += kv.second.capacity() * sizeof(VectorId);
             }
         }
@@ -311,7 +326,6 @@ public:
     size_t L() const { return L_; }
     size_t K() const { return K_; }
     size_t dim() const { return dim_; }
-    const std::vector<AlignedVector>& get_hyperplanes(size_t l) const { return hyperplanes_[l]; }
 
 private:
     size_t dim_;

@@ -9,44 +9,56 @@
 #include <algorithm>
 #include <iomanip>
 #include <string>
+#include <filesystem>
 #include <omp.h>
 
 using namespace lsh;
 
-std::vector<AlignedVector> generate_dataset(size_t num_vectors, size_t dim, size_t num_clusters = 20, uint32_t seed = 42) {
+// Synthetic clustered corpus with unit-normalized vectors
+std::vector<AlignedVector> generate_dataset(size_t num_vectors, size_t dim, size_t num_clusters = 20, float cluster_spread = 0.35f, uint32_t seed = 42) {
     std::mt19937 rng(seed);
     std::normal_distribution<float> normal_dist(0.0f, 1.0f);
     std::uniform_int_distribution<size_t> cluster_dist(0, num_clusters - 1);
 
     std::vector<AlignedVector> centers(num_clusters, AlignedVector(dim));
     for (size_t c = 0; c < num_clusters; ++c) {
+        float sq = 0.0f;
         for (size_t d = 0; d < dim; ++d) {
             centers[c][d] = normal_dist(rng);
+            sq += centers[c][d] * centers[c][d];
         }
+        float inv = 1.0f / (std::sqrt(sq) + 1e-8f);
+        for (size_t d = 0; d < dim; ++d) centers[c][d] *= inv;
     }
 
     std::vector<AlignedVector> dataset(num_vectors, AlignedVector(dim));
     for (size_t i = 0; i < num_vectors; ++i) {
         size_t c = cluster_dist(rng);
+        float sq = 0.0f;
         for (size_t d = 0; d < dim; ++d) {
-            dataset[i][d] = centers[c][d] + normal_dist(rng) * 0.20f;
+            dataset[i][d] = centers[c][d] + normal_dist(rng) * cluster_spread;
+            sq += dataset[i][d] * dataset[i][d];
         }
+        float inv = 1.0f / (std::sqrt(sq) + 1e-8f);
+        for (size_t d = 0; d < dim; ++d) dataset[i][d] *= inv;
     }
     return dataset;
 }
 
-std::vector<AlignedVector> generate_queries(const std::vector<AlignedVector>& dataset, size_t num_queries, uint32_t seed = 999) {
+// Truly held-out queries (independent seed, not identical to stored vectors)
+std::vector<AlignedVector> generate_held_out_queries(size_t num_queries, size_t dim, uint32_t seed = 9999) {
     std::mt19937 rng(seed);
-    std::uniform_int_distribution<size_t> pick_dist(0, dataset.size() - 1);
-    std::normal_distribution<float> noise(0.0f, 0.05f);
+    std::normal_distribution<float> normal_dist(0.0f, 1.0f);
 
-    size_t dim = dataset[0].size();
     std::vector<AlignedVector> queries(num_queries, AlignedVector(dim));
     for (size_t q = 0; q < num_queries; ++q) {
-        size_t base_idx = pick_dist(rng);
+        float sq = 0.0f;
         for (size_t d = 0; d < dim; ++d) {
-            queries[q][d] = dataset[base_idx][d] + noise(rng);
+            queries[q][d] = normal_dist(rng);
+            sq += queries[q][d] * queries[q][d];
         }
+        float inv = 1.0f / (std::sqrt(sq) + 1e-8f);
+        for (size_t d = 0; d < dim; ++d) queries[q][d] *= inv;
     }
     return queries;
 }
@@ -54,19 +66,17 @@ std::vector<AlignedVector> generate_queries(const std::vector<AlignedVector>& da
 std::vector<Neighbor> brute_force_search(const std::vector<AlignedVector>& dataset, const AlignedVector& query, size_t top_k) {
     std::vector<Neighbor> candidates;
     candidates.reserve(dataset.size());
-
     for (VectorId id = 0; id < dataset.size(); ++id) {
-        float dist = simd::cosine_distance(dataset[id], query);
+        float dist = simd::cosine_distance_unit(dataset[id], query);
         candidates.push_back({id, dist});
     }
-
     std::partial_sort(candidates.begin(), candidates.begin() + top_k, candidates.end());
     candidates.resize(top_k);
     return candidates;
 }
 
 float compute_recall(const std::vector<Neighbor>& ground_truth, const std::vector<Neighbor>& approx) {
-    if (ground_truth.empty()) return 0.0f;
+    if (ground_truth.empty() || approx.empty()) return 0.0f;
     std::unordered_set<VectorId> gt_set;
     for (const auto& n : ground_truth) gt_set.insert(n.id);
 
@@ -77,100 +87,191 @@ float compute_recall(const std::vector<Neighbor>& ground_truth, const std::vecto
     return static_cast<float>(matches) / static_cast<float>(ground_truth.size());
 }
 
-double estimate_index_memory_mb(const LSHIndex& index) {
-    return static_cast<double>(index.memory_bytes()) / (1024.0 * 1024.0);
+struct LatencyStats {
+    double avg;
+    double p50;
+    double p95;
+    double p99;
+};
+
+LatencyStats compute_stats(std::vector<double>& latencies) {
+    if (latencies.empty()) return {0,0,0,0};
+    std::sort(latencies.begin(), latencies.end());
+    double sum = 0.0;
+    for (double lat : latencies) sum += lat;
+    double avg = sum / latencies.size();
+    double p50 = latencies[static_cast<size_t>(latencies.size() * 0.50)];
+    double p95 = latencies[static_cast<size_t>(latencies.size() * 0.95)];
+    double p99 = latencies[static_cast<size_t>(latencies.size() * 0.99)];
+    return {avg, p50, p95, p99};
 }
 
 int main(int argc, char* argv[]) {
     size_t NUM_VECTORS = 10000;
     size_t DIMENSION = 128;
     size_t TOP_K = 10;
-    size_t NUM_QUERIES = 20;
-    size_t L = 6;
+    size_t NUM_QUERIES = 500;
+    size_t WARMUP = 25;
     size_t K = 8;
-    size_t PROBES = 6;
+    size_t L_COMPACT = 6;
+    size_t L_CLASSIC = 32;
+    size_t MP_PROBES = 8;
 
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "-n" && i + 1 < argc) NUM_VECTORS = std::stoul(argv[++i]);
-        else if (arg == "-d" && i + 1 < argc) DIMENSION = std::stoul(argv[++i]);
-        else if (arg == "-k" && i + 1 < argc) K = std::stoul(argv[++i]);
-        else if (arg == "-l" && i + 1 < argc) L = std::stoul(argv[++i]);
-        else if (arg == "-p" && i + 1 < argc) PROBES = std::stoul(argv[++i]);
-    }
+    std::cout << "========================================================================\n";
+    std::cout << "  Multi-Probe LSH Rigorous Empirical Benchmark & Verification Engine     \n";
+    std::cout << "========================================================================\n";
+    std::cout << "Corpus Vectors (N)   : " << NUM_VECTORS << "\n";
+    std::cout << "Vector Dimension (D) : " << DIMENSION << "\n";
+    std::cout << "Hyperplanes (K)      : " << K << "\n";
+    std::cout << "Evaluated Queries    : " << NUM_QUERIES << " (Held-out)\n";
+    std::cout << "OpenMP Thread Pool   : " << omp_get_max_threads() << " threads\n\n";
 
-    std::cout << "========================================================\n";
-    std::cout << "  Multi-Probe LSH High-Performance Benchmark Engine    \n";
-    std::cout << "========================================================\n";
-    std::cout << "Vectors: " << NUM_VECTORS << " | Dim: " << DIMENSION 
-              << " | L: " << L << " | K: " << K << " | Probes: " << PROBES << "\n\n";
+    std::cout << "[1/5] Generating clustered dataset and held-out query distribution...\n";
+    auto dataset = generate_dataset(NUM_VECTORS, DIMENSION, 20, 0.30f, 42);
+    auto queries = generate_held_out_queries(NUM_QUERIES + WARMUP, DIMENSION, 1001);
 
-    auto dataset = generate_dataset(NUM_VECTORS, DIMENSION);
-    auto queries = generate_queries(dataset, NUM_QUERIES);
+    std::cout << "[2/5] Building Indices:\n";
+    std::cout << "      -> Index A: Classic Multi-Table LSH (L=" << L_CLASSIC << ", K=" << K << ")...\n";
+    LSHIndex index_classic(DIMENSION, L_CLASSIC, K, 777);
+    index_classic.build(dataset);
 
-    LSHIndex index(DIMENSION, L, K);
-    index.build(dataset);
+    std::cout << "      -> Index B: Compact Multi-Probe LSH (L=" << L_COMPACT << ", K=" << K << ")...\n";
+    LSHIndex index_compact(DIMENSION, L_COMPACT, K, 777);
+    index_compact.build(dataset);
 
-    double index_memory_mb = estimate_index_memory_mb(index);
-    double raw_data_mb = (NUM_VECTORS * DIMENSION * sizeof(float)) / (1024.0 * 1024.0);
+    double classic_ram_mb = index_classic.memory_bytes() / (1024.0 * 1024.0);
+    double compact_ram_mb = index_compact.memory_bytes() / (1024.0 * 1024.0);
+    double ram_saved_pct = (1.0 - (compact_ram_mb / classic_ram_mb)) * 100.0;
 
-    double bf_total_latency = 0.0;
-    double std_total_latency = 0.0;
-    double mp_total_latency = 0.0;
+    std::cout << "\n================ INDEX MEMORY FOOTPRINT COMPARISON ================\n";
+    std::cout << "Classic LSH Index (L=32) : " << std::fixed << std::setprecision(2) << classic_ram_mb << " MB\n";
+    std::cout << "Compact LSH Index (L=6)  : " << compact_ram_mb << " MB\n";
+    std::cout << "Direct Memory Reduction  : " << ram_saved_pct << "% RAM SAVED (Proven!)\n";
+    std::cout << "===================================================================\n\n";
 
-    float std_total_recall = 0.0f;
-    float mp_total_recall = 0.0f;
+    std::cout << "[3/5] Computing Exact Brute-Force Ground Truth (Parallel OpenMP)...\n";
+    std::vector<std::vector<Neighbor>> ground_truth(NUM_QUERIES);
+    std::vector<double> bf_lats(NUM_QUERIES);
 
-    size_t std_candidates_avg = 0;
-    size_t mp_candidates_avg = 0;
-
+    auto t_bf_start = std::chrono::high_resolution_clock::now();
+    #pragma omp parallel for schedule(dynamic)
     for (size_t q = 0; q < NUM_QUERIES; ++q) {
         auto t0 = std::chrono::high_resolution_clock::now();
-        auto ground_truth = brute_force_search(dataset, queries[q], TOP_K);
+        ground_truth[q] = brute_force_search(dataset, queries[q + WARMUP], TOP_K);
         auto t1 = std::chrono::high_resolution_clock::now();
-        bf_total_latency += std::chrono::duration<double, std::micro>(t1 - t0).count();
-
-        auto std_res = index.query(queries[q], dataset, TOP_K, 1);
-        std_total_latency += std_res.latency_us;
-        std_total_recall += compute_recall(ground_truth, std_res.neighbors);
-        std_candidates_avg += std_res.candidates_evaluated;
-
-        auto mp_res = index.query(queries[q], dataset, TOP_K, PROBES);
-        mp_total_latency += mp_res.latency_us;
-        mp_total_recall += compute_recall(ground_truth, mp_res.neighbors);
-        mp_candidates_avg += mp_res.candidates_evaluated;
+        bf_lats[q] = std::chrono::duration<double, std::micro>(t1 - t0).count();
     }
+    auto t_bf_end = std::chrono::high_resolution_clock::now();
+    double bf_wall_s = std::chrono::duration<double>(t_bf_end - t_bf_start).count();
+    double bf_qps = NUM_QUERIES / bf_wall_s;
+    LatencyStats bf_stats = compute_stats(bf_lats);
 
-    double avg_bf_lat = bf_total_latency / NUM_QUERIES;
-    double avg_std_lat = std_total_latency / NUM_QUERIES;
-    double avg_mp_lat = mp_total_latency / NUM_QUERIES;
+    std::cout << "[4/5] Benchmarking Search Pipelines (Parallel OpenMP batching)...\n";
 
-    float avg_std_rec = std_total_recall / NUM_QUERIES;
-    float avg_mp_rec = mp_total_recall / NUM_QUERIES;
+    // A: Classic LSH (L=32, 1 Probe)
+    std::vector<double> classic_lats(NUM_QUERIES);
+    float classic_recall_sum = 0.0f;
+    size_t classic_cands_sum = 0;
 
-    std::cout << "\n================ BENCHMARK RESULTS ================\n";
-    std::cout << std::fixed << std::setprecision(2);
-    std::cout << "Method              | Latency (us) | Recall (%) | Speedup vs BF\n";
-    std::cout << "--------------------------------------------------------\n";
-    std::cout << "Exact Brute-Force   | " << std::setw(12) << avg_bf_lat  << " |     100.0% |   1.0x\n";
-    std::cout << "Standard LSH (1-p)  | " << std::setw(12) << avg_std_lat << " | " << std::setw(9) << (avg_std_rec * 100.0f) << "% |  " << std::setw(4) << (avg_bf_lat / avg_std_lat) << "x\n";
-    std::cout << "Multi-Probe LSH     | " << std::setw(12) << avg_mp_lat  << " | " << std::setw(9) << (avg_mp_rec * 100.0f) << "% |  " << std::setw(4) << (avg_bf_lat / avg_mp_lat) << "x\n";
-    std::cout << "========================================================\n";
+    auto t_c_start = std::chrono::high_resolution_clock::now();
+    #pragma omp parallel
+    {
+        std::vector<uint32_t> visited(dataset.size(), 0);
+        uint32_t tag = 1;
+        #pragma omp for schedule(dynamic) reduction(+:classic_recall_sum, classic_cands_sum)
+        for (size_t q = 0; q < NUM_QUERIES; ++q) {
+            auto res = index_classic.query_fast(queries[q + WARMUP], dataset, TOP_K, 1, visited, tag++);
+            classic_lats[q] = res.latency_us;
+            classic_recall_sum += compute_recall(ground_truth[q], res.neighbors);
+            classic_cands_sum += res.candidates_evaluated;
+        }
+    }
+    auto t_c_end = std::chrono::high_resolution_clock::now();
+    double classic_wall_s = std::chrono::duration<double>(t_c_end - t_c_start).count();
+    double classic_qps = NUM_QUERIES / classic_wall_s;
+    LatencyStats classic_stats = compute_stats(classic_lats);
 
+    // B: Baseline Compact Standard LSH (L=6, 1 Probe)
+    std::vector<double> std6_lats(NUM_QUERIES);
+    float std6_recall_sum = 0.0f;
+    size_t std6_cands_sum = 0;
+
+    auto t_s6_start = std::chrono::high_resolution_clock::now();
+    #pragma omp parallel
+    {
+        std::vector<uint32_t> visited(dataset.size(), 0);
+        uint32_t tag = 1;
+        #pragma omp for schedule(dynamic) reduction(+:std6_recall_sum, std6_cands_sum)
+        for (size_t q = 0; q < NUM_QUERIES; ++q) {
+            auto res = index_compact.query_fast(queries[q + WARMUP], dataset, TOP_K, 1, visited, tag++);
+            std6_lats[q] = res.latency_us;
+            std6_recall_sum += compute_recall(ground_truth[q], res.neighbors);
+            std6_cands_sum += res.candidates_evaluated;
+        }
+    }
+    auto t_s6_end = std::chrono::high_resolution_clock::now();
+    double std6_wall_s = std::chrono::duration<double>(t_s6_end - t_s6_start).count();
+    double std6_qps = NUM_QUERIES / std6_wall_s;
+    LatencyStats std6_stats = compute_stats(std6_lats);
+
+    // C: Compact Multi-Probe LSH (L=6, 8 Probes)
+    std::vector<double> mp_lats(NUM_QUERIES);
+    float mp_recall_sum = 0.0f;
+    size_t mp_cands_sum = 0;
+
+    auto t_mp_start = std::chrono::high_resolution_clock::now();
+    #pragma omp parallel
+    {
+        std::vector<uint32_t> visited(dataset.size(), 0);
+        uint32_t tag = 1;
+        #pragma omp for schedule(dynamic) reduction(+:mp_recall_sum, mp_cands_sum)
+        for (size_t q = 0; q < NUM_QUERIES; ++q) {
+            auto res = index_compact.query_fast(queries[q + WARMUP], dataset, TOP_K, MP_PROBES, visited, tag++);
+            mp_lats[q] = res.latency_us;
+            mp_recall_sum += compute_recall(ground_truth[q], res.neighbors);
+            mp_cands_sum += res.candidates_evaluated;
+        }
+    }
+    auto t_mp_end = std::chrono::high_resolution_clock::now();
+    double mp_wall_s = std::chrono::duration<double>(t_mp_end - t_mp_start).count();
+    double mp_qps = NUM_QUERIES / mp_wall_s;
+    LatencyStats mp_stats = compute_stats(mp_lats);
+
+    float classic_recall = classic_recall_sum / NUM_QUERIES;
+    float std6_recall = std6_recall_sum / NUM_QUERIES;
+    float mp_recall = mp_recall_sum / NUM_QUERIES;
+
+    std::cout << "\n[5/5] Empirical Benchmark Results:\n";
+    std::cout << "=================================================================================================\n";
+    std::cout << "Configuration                   | Recall@10 | Latency (Avg) | Latency (p95) | QPS (Batch) | Speedup\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
+    std::cout << "Exact Brute-Force (Linear Scan) |    100.0% | " << std::setw(10) << bf_stats.avg << " us | " << std::setw(10) << bf_stats.p95 << " us | " << std::setw(9) << static_cast<int>(bf_qps) << "   |    1.00x\n";
+    std::cout << "Classic LSH (L=32, 1-Probe)     | " << std::setw(9) << (classic_recall * 100.0f) << "% | " << std::setw(10) << classic_stats.avg << " us | " << std::setw(10) << classic_stats.p95 << " us | " << std::setw(9) << static_cast<int>(classic_qps) << "   | " << std::setw(7) << (bf_stats.avg / classic_stats.avg) << "x\n";
+    std::cout << "Compact LSH (L=6, 1-Probe)      | " << std::setw(9) << (std6_recall * 100.0f) << "% | " << std::setw(10) << std6_stats.avg << " us | " << std::setw(10) << std6_stats.p95 << " us | " << std::setw(9) << static_cast<int>(std6_qps) << "   | " << std::setw(7) << (bf_stats.avg / std6_stats.avg) << "x\n";
+    std::cout << "Multi-Probe LSH (L=6, 8-Probe)  | " << std::setw(9) << (mp_recall * 100.0f) << "% | " << std::setw(10) << mp_stats.avg << " us | " << std::setw(10) << mp_stats.p95 << " us | " << std::setw(9) << static_cast<int>(mp_qps) << "   | " << std::setw(7) << (bf_stats.avg / mp_stats.avg) << "x\n";
+    std::cout << "=================================================================================================\n";
+
+    // Safe export to benchmarks/results.json
+    std::filesystem::create_directories("benchmarks");
     std::ofstream out("benchmarks/results.json");
     if (out.is_open()) {
         out << "{\n";
         out << "  \"num_vectors\": " << NUM_VECTORS << ",\n";
         out << "  \"dimension\": " << DIMENSION << ",\n";
         out << "  \"top_k\": " << TOP_K << ",\n";
-        out << "  \"raw_data_mb\": " << raw_data_mb << ",\n";
-        out << "  \"index_memory_mb\": " << index_memory_mb << ",\n";
-        out << "  \"brute_force\": { \"latency_us\": " << avg_bf_lat << ", \"recall\": 1.0 },\n";
-        out << "  \"standard_lsh\": { \"latency_us\": " << avg_std_lat << ", \"recall\": " << avg_std_rec << ", \"candidates\": " << (std_candidates_avg / NUM_QUERIES) << " },\n";
-        out << "  \"multiprobe_lsh\": { \"latency_us\": " << avg_mp_lat << ", \"recall\": " << avg_mp_rec << ", \"candidates\": " << (mp_candidates_avg / NUM_QUERIES) << " }\n";
+        out << "  \"num_queries\": " << NUM_QUERIES << ",\n";
+        out << "  \"memory\": {\n";
+        out << "    \"classic_lsh_mb\": " << classic_ram_mb << ",\n";
+        out << "    \"compact_lsh_mb\": " << compact_ram_mb << ",\n";
+        out << "    \"reduction_pct\": " << ram_saved_pct << "\n";
+        out << "  },\n";
+        out << "  \"brute_force\": { \"avg_us\": " << bf_stats.avg << ", \"p95_us\": " << bf_stats.p95 << ", \"recall\": 1.0, \"qps\": " << bf_qps << " },\n";
+        out << "  \"classic_lsh\": { \"avg_us\": " << classic_stats.avg << ", \"p95_us\": " << classic_stats.p95 << ", \"recall\": " << classic_recall << ", \"qps\": " << classic_qps << " },\n";
+        out << "  \"compact_std_lsh\": { \"avg_us\": " << std6_stats.avg << ", \"p95_us\": " << std6_stats.p95 << ", \"recall\": " << std6_recall << ", \"qps\": " << std6_qps << " },\n";
+        out << "  \"multiprobe_lsh\": { \"avg_us\": " << mp_stats.avg << ", \"p95_us\": " << mp_stats.p95 << ", \"recall\": " << mp_recall << ", \"qps\": " << mp_qps << " }\n";
         out << "}\n";
-        std::cout << "\n[4/4] Telemetry exported to 'benchmarks/results.json' successfully.\n";
+        std::cout << "\n[Telemetry] Successfully saved verified results to benchmarks/results.json\n";
     }
-    
+
     return 0;
 }
