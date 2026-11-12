@@ -12,9 +12,9 @@
 Approximate Nearest Neighbor (ANN) search in high-dimensional spaces ($d = 128$) faces the *Curse of Dimensionality*, where spatial partitioning trees ($k$-d trees, R-trees) degrade to $\mathcal{O}(N \cdot d)$ exhaustive scans. Locality-Sensitive Hashing (LSH) provides sublinear theoretical guarantees, but standard random-hyperplane LSH (SimHash) requires a large number of hash tables ($L \ge 32$) to overcome boundary-miss errors, inflating index memory linearly with $L$.
 
 This project implements and audits **Margin-Guided Multi-Probe LSH** (Lv et al., 2007) in C++20. All empirical tables in this report are generated directly from `benchmarks/results.json` under a deterministic seed protocol (`seed = 777`, plus 5-seed variability analysis). Specifically, we demonstrate:
-1. **Index Memory Reduction vs. Recall Recovery:** Reducing $L$ from $32$ to $6$ cuts index structural RAM by **81.50%** (2.12 MB $\rightarrow$ 0.39 MB; total footprint including the 4.88 MB raw dataset drops by **24.65%**, with process RSS measured at **25.09 MB**). Single-probe recall on the compact $L=6$ index drops to **82.90%** (uncentered) / **64.40%** (centered), whereas $P=8$ multi-probe routing recovers **99.80%** (uncentered) / **97.40%** (centered).
+1. **Index Memory Reduction vs. Recall Recovery:** Reducing $L$ from $32$ to $6$ cuts index structural RAM by **81.50%** (2.12 MB $\rightarrow$ 0.39 MB; total footprint including the 4.88 MB raw dataset drops by **24.65%**, with process RSS measured at **25.88 MB**). Single-probe recall on the compact $L=6$ index drops to **82.90%** (uncentered) / **64.40%** (centered), whereas $P=8$ multi-probe routing recovers **99.80%** (uncentered) / **97.40%** (centered).
 2. **SIFT Non-Negativity & Bucket Entropy:** Raw SIFT descriptors lie strictly in the non-negative orthant ($\mathbb{R}_+^{128}$), causing origin-centered hyperplanes to populate only **168/256** buckets with a maximum bucket size of **1610** (Shannon entropy **5.45 bits**). Mean-centering the projection space populates **255/256** buckets, reduces the max bucket to **317** (entropy **7.16 bits**), and cuts the candidate fraction scanned by more than half (from **67.44%** down to **27.45%**).
-3. **Honest Latency & Scaling Regime:** At $N = 10,000$, the 4.88 MiB dataset is completely L3-cache resident, allowing contiguous AVX2 brute-force scans to complete in **180.87 $\mu$s**. At this small scale, hash-table indirection and candidate gathering make LSH slower or comparable to brute force. However, our scaling study proves that at $N = 100,000$ ($K=12, L=6, P=8$), Multi-Probe LSH evaluates only **6.80%** of the corpus and achieves a **8.67$\times$ single-thread latency speedup** over AVX2 brute force (**615.09 $\mu$s** vs. **5329.88 $\mu$s** at **91.50%** recall).
+3. **Honest Latency & Scaling Regime:** At $N = 10,000$, the 4.88 MiB dataset is completely L3-cache resident, allowing contiguous AVX2 brute-force scans to complete in **170.47 $\mu$s**. At this small scale, hash-table indirection and candidate gathering make LSH slower or comparable to brute force. However, our scaling study proves that at $N = 100,000$ ($K=12, L=6, P=8$), Multi-Probe LSH evaluates only **6.80%** of the corpus and achieves a **6.11$\times$ single-thread latency speedup** over AVX2 brute force (**676.37 $\mu$s** vs. **4135.80 $\mu$s** at **91.50%** recall).
 
 ---
 
@@ -62,11 +62,11 @@ An alternative Laplace-like heuristic uses the **linear sum** $C_{\text{lin}}(M)
 
 | Configuration | Index RAM | Recall@10 | ST Avg ($\mu$s) | ST p50 ($\mu$s) | ST p95 ($\mu$s) | ST p99 ($\mu$s) | Cand Frac | Buckets | OpenMP QPS |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Exact Brute-Force** | 0.00 MB | 100.00% | 180.87 | 169.55 | 258.40 | 316.29 | 100.00% | 0 | 33333 |
-| **Classic LSH (L=32, P=1)** | 2.12 MB | 100.00% | 274.46 | 242.70 | 438.03 | 552.27 | 51.14% | 32 | 27180 |
-| **Compact LSH (L=6, P=1)** | 0.39 MB | 82.90% | 164.75 | 155.10 | 359.62 | 472.78 | 22.11% | 6 | 59068 |
-| **Multi-Probe LSH (L=6, P=8 Sq)** | 0.39 MB | 99.80% | 381.74 | 365.80 | 652.90 | 793.60 | 67.44% | 48 | 23559 |
-| **Multi-Probe LSH (L=6, P=8 Lin)** | 0.39 MB | 99.80% | 245.25 | 244.00 | 316.95 | 336.65 | 67.44% | 48 | 26743 |
+| **Exact Brute-Force** | 0.00 MB | 100.00% | 170.47 | 163.00 | 201.93 | 239.26 | 100.00% | 0 | 14285 |
+| **Classic LSH (L=32, P=1)** | 2.12 MB | 100.00% | 220.72 | 211.30 | 306.44 | 356.44 | 51.14% | 32 | 12815 |
+| **Compact LSH (L=6, P=1)** | 0.39 MB | 82.90% | 77.98 | 77.85 | 125.80 | 135.12 | 22.11% | 6 | 39166 |
+| **Multi-Probe LSH (L=6, P=8 Sq)** | 0.39 MB | 99.80% | 344.12 | 337.70 | 561.91 | 715.91 | 67.44% | 48 | 12957 |
+| **Multi-Probe LSH (L=6, P=8 Lin)** | 0.39 MB | 99.80% | 422.84 | 352.00 | 684.28 | 782.66 | 67.44% | 48 | 13452 |
 
 > **Note on Candidate Fraction (Uncentered):** On uncentered SIFT10K, Multi-Probe ($L=6, P=8$) probes $48$ buckets and evaluates **67.44%** of the corpus compared to **51.14%** for Classic LSH ($L=32, P=1$). Thus, Multi-Probe trades ~16% more candidate evaluations to save **81.5% index RAM** while recovering recall from **82.90%** to **99.80%**.
 
@@ -74,10 +74,10 @@ An alternative Laplace-like heuristic uses the **linear sum** $C_{\text{lin}}(M)
 
 | Configuration | Index RAM | Recall@10 | ST Avg ($\mu$s) | ST p50 ($\mu$s) | ST p95 ($\mu$s) | ST p99 ($\mu$s) | Cand Frac | Buckets | OpenMP QPS |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Exact Brute-Force** | 0.00 MB | 100.00% | 180.87 | 169.55 | 258.40 | 316.29 | 100.00% | 0 | 33333 |
-| **Centered Classic (L=32, P=1)** | 2.17 MB | 98.00% | 88.01 | 87.25 | 128.29 | 143.31 | 25.19% | 32 | 53282 |
-| **Centered Compact (L=6, P=1)** | 0.41 MB | 64.40% | 24.70 | 24.40 | 41.51 | 49.36 | 6.59% | 6 | 217803 |
-| **Centered Multi-Probe (L=6, P=8)** | 0.41 MB | 97.40% | 92.15 | 90.05 | 143.81 | 158.82 | 27.45% | 48 | 54977 |
+| **Exact Brute-Force** | 0.00 MB | 100.00% | 170.47 | 163.00 | 201.93 | 239.26 | 100.00% | 0 | 14285 |
+| **Centered Classic (L=32, P=1)** | 2.17 MB | 98.00% | 124.68 | 119.90 | 182.71 | 208.93 | 25.19% | 32 | 32910 |
+| **Centered Compact (L=6, P=1)** | 0.41 MB | 64.40% | 24.61 | 25.20 | 40.98 | 47.72 | 6.59% | 6 | 129315 |
+| **Centered Multi-Probe (L=6, P=8)** | 0.41 MB | 97.40% | 99.28 | 100.00 | 133.21 | 169.44 | 27.45% | 48 | 47673 |
 
 ### 4.4 Multi-Seed Variability ($L=6, K=8, P=8$ Centered across 5 Independent Seeds)
 - **Seeds Evaluated:** `101, 202, 303, 404, 777`
@@ -88,27 +88,27 @@ An alternative Laplace-like heuristic uses the **linear sum** $C_{\text{lin}}(M)
 
 | $K$ (Bits) | $L$ (Tables) | $P$ (Probes) | Index RAM (MB) | Build (ms) | Recall@10 | Cand Frac (%) | ST Avg ($\mu$s) | OpenMP QPS |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 8 | 6 | 1 | 0.41 | 21.67 | 64.40% | 6.59% | 75.64 | 112109 |
-| 8 | 6 | 2 | 0.41 | 13.79 | 81.50% | 11.34% | 41.51 | 120393 |
-| 8 | 6 | 4 | 0.41 | 12.66 | 92.30% | 18.29% | 121.87 | 76296 |
-| 8 | 6 | 8 | 0.41 | 10.96 | 97.40% | 27.45% | 93.39 | 41945 |
-| 8 | 6 | 16 | 0.41 | 15.75 | 99.40% | 38.89% | 155.52 | 28553 |
-| 8 | 16 | 1 | 1.08 | 30.12 | 89.60% | 15.15% | 44.77 | 86627 |
-| 8 | 32 | 1 | 2.17 | 93.62 | 98.00% | 25.19% | 89.28 | 52991 |
-| 12 | 6 | 1 | 0.82 | 37.58 | 37.70% | 1.45% | 10.15 | 385804 |
-| 12 | 6 | 8 | 0.82 | 15.27 | 81.20% | 7.12% | 39.80 | 135807 |
-| 12 | 6 | 16 | 0.82 | 14.20 | 91.70% | 11.18% | 52.35 | 103168 |
-| 12 | 16 | 4 | 2.20 | 41.44 | 90.70% | 9.83% | 82.92 | 84196 |
-| 16 | 8 | 8 | 2.10 | 38.38 | 63.10% | 2.53% | 62.35 | 137508 |
-| 16 | 16 | 8 | 4.01 | 57.95 | 80.40% | 4.99% | 128.36 | 72853 |
+| 8 | 6 | 1 | 0.41 | 13.87 | 64.40% | 6.59% | 26.67 | 116092 |
+| 8 | 6 | 2 | 0.41 | 12.17 | 81.50% | 11.34% | 47.62 | 66586 |
+| 8 | 6 | 4 | 0.41 | 15.28 | 92.30% | 18.29% | 80.95 | 48964 |
+| 8 | 6 | 8 | 0.41 | 13.48 | 97.40% | 27.45% | 122.52 | 31944 |
+| 8 | 6 | 16 | 0.41 | 12.11 | 99.40% | 38.89% | 140.78 | 29319 |
+| 8 | 16 | 1 | 1.08 | 25.62 | 89.60% | 15.15% | 49.99 | 69335 |
+| 8 | 32 | 1 | 2.17 | 50.64 | 98.00% | 25.19% | 100.15 | 39015 |
+| 12 | 6 | 1 | 0.82 | 17.22 | 37.70% | 1.45% | 7.67 | 281152 |
+| 12 | 6 | 8 | 0.82 | 16.43 | 81.20% | 7.12% | 45.01 | 80889 |
+| 12 | 6 | 16 | 0.82 | 18.38 | 91.70% | 11.18% | 66.26 | 57904 |
+| 12 | 16 | 4 | 2.20 | 42.32 | 90.70% | 9.83% | 101.57 | 42406 |
+| 16 | 8 | 8 | 2.10 | 31.08 | 63.10% | 2.53% | 65.97 | 76411 |
+| 16 | 16 | 8 | 4.01 | 62.34 | 80.40% | 4.99% | 160.94 | 32868 |
 
 ### 4.6 Corpus Scaling Study ($N = 10\text{K} \rightarrow 100\text{K}$ at $K=12, L=6, P=8$)
 
 | Corpus Size ($N$) | Brute-Force ST ($\mu$s) | Multi-Probe ST ($\mu$s) | ST Latency Speedup | Recall@10 | Candidate Fraction |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| 10000 | 157.21 $\mu$s | 58.25 $\mu$s | **2.70$\times$** | 81.60% | 7.04% |
-| 25000 | 912.15 $\mu$s | 116.41 $\mu$s | **7.84$\times$** | 86.30% | 6.98% |
-| 100000 | 5329.88 $\mu$s | 615.09 $\mu$s | **8.67$\times$** | 91.50% | 6.80% |
+| 10000 | 280.29 $\mu$s | 50.92 $\mu$s | **5.50$\times$** | 81.60% | 7.04% |
+| 25000 | 663.89 $\mu$s | 105.93 $\mu$s | **6.27$\times$** | 86.30% | 6.98% |
+| 100000 | 4135.80 $\mu$s | 676.37 $\mu$s | **6.11$\times$** | 91.50% | 6.80% |
 
 ---
 

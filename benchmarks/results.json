@@ -18,24 +18,24 @@
     "compact_index_mb": 0.3918,
     "index_reduction_pct": 81.4969,
     "total_reduction_pct": 24.6501,
-    "process_rss_mb": 25.0859
+    "process_rss_mb": 25.8789
   },
-  "brute_force": { "recall": 100.0, "st_avg_us": 180.8650, "st_p95_us": 258.4000, "mt_qps": 33333.1002, "cand_frac_pct": 100.0 },
+  "brute_force": { "recall": 100.0, "st_avg_us": 170.4690, "st_p95_us": 201.9300, "mt_qps": 14285.7766, "cand_frac_pct": 100.0 },
   "uncentered": {
-    "classic_l32_p1": { "recall": 100.0000, "st_avg_us": 274.4630, "st_p95_us": 438.0350, "mt_qps": 27180.4127, "cand_frac_pct": 51.1428 },
-    "compact_l6_p1": { "recall": 82.9000, "st_avg_us": 164.7550, "st_p95_us": 359.6150, "mt_qps": 59068.1410, "cand_frac_pct": 22.1122 },
-    "multiprobe_l6_p8_sq": { "recall": 99.8000, "st_avg_us": 381.7370, "st_p95_us": 652.9000, "mt_qps": 23559.9010, "cand_frac_pct": 67.4429 },
-    "multiprobe_l6_p8_lin": { "recall": 99.8000, "st_avg_us": 245.2500, "st_p95_us": 316.9500, "mt_qps": 26743.4024, "cand_frac_pct": 67.4351 }
+    "classic_l32_p1": { "recall": 100.0000, "st_avg_us": 220.7160, "st_p95_us": 306.4400, "mt_qps": 12815.4852, "cand_frac_pct": 51.1428 },
+    "compact_l6_p1": { "recall": 82.9000, "st_avg_us": 77.9790, "st_p95_us": 125.8000, "mt_qps": 39166.8429, "cand_frac_pct": 22.1122 },
+    "multiprobe_l6_p8_sq": { "recall": 99.8000, "st_avg_us": 344.1250, "st_p95_us": 561.9100, "mt_qps": 12957.6647, "cand_frac_pct": 67.4429 },
+    "multiprobe_l6_p8_lin": { "recall": 99.8000, "st_avg_us": 422.8360, "st_p95_us": 684.2850, "mt_qps": 13452.9751, "cand_frac_pct": 67.4351 }
   },
   "centered": {
-    "classic_l32_p1": { "recall": 98.0000, "st_avg_us": 88.0120, "st_p95_us": 128.2900, "mt_qps": 53282.1824, "cand_frac_pct": 25.1931 },
-    "compact_l6_p1": { "recall": 64.4000, "st_avg_us": 24.6980, "st_p95_us": 41.5100, "mt_qps": 217803.2366, "cand_frac_pct": 6.5919 },
-    "multiprobe_l6_p8": { "recall": 97.4000, "st_avg_us": 92.1520, "st_p95_us": 143.8100, "mt_qps": 54977.0746, "cand_frac_pct": 27.4512 }
+    "classic_l32_p1": { "recall": 98.0000, "st_avg_us": 124.6820, "st_p95_us": 182.7150, "mt_qps": 32910.1093, "cand_frac_pct": 25.1931 },
+    "compact_l6_p1": { "recall": 64.4000, "st_avg_us": 24.6110, "st_p95_us": 40.9850, "mt_qps": 129315.9188, "cand_frac_pct": 6.5919 },
+    "multiprobe_l6_p8": { "recall": 97.4000, "st_avg_us": 99.2760, "st_p95_us": 133.2100, "mt_qps": 47673.0771, "cand_frac_pct": 27.4512 }
   },
   "scaling_100k": {
-    "bf_us": 5329.8795,
-    "mp_us": 615.0865,
-    "speedup": 8.6653,
+    "bf_us": 4135.7965,
+    "mp_us": 676.3690,
+    "speedup": 6.1147,
     "recall": 91.5000,
     "cand_frac_pct": 6.8006
   }

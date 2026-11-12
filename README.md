@@ -13,13 +13,13 @@ An AVX2 SIMD-accelerated Approximate Nearest Neighbor (ANN) engine in C++20 impl
 
 | Configuration | Index RAM | Recall@10 | Single-Thread Avg ($\mu$s) | Candidate Fraction | OpenMP Batch QPS |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Exact Brute-Force** | 0.00 MB | 100.00% | 180.87 $\mu$s | 100.00% | 33333 |
-| **Uncentered Classic LSH ($L=32, P=1$)** | 2.12 MB | 100.00% | 274.46 $\mu$s | 51.14% | 27180 |
-| **Uncentered Compact LSH ($L=6, P=1$)** | 0.39 MB | 82.90% | 164.75 $\mu$s | 22.11% | 59068 |
-| **Uncentered Multi-Probe ($L=6, P=8$)** | 0.39 MB | **99.80%** | 381.74 $\mu$s | 67.44% | 23559 |
-| **Centered Classic LSH ($L=32, P=1$)** | 2.17 MB | 98.00% | 88.01 $\mu$s | 25.19% | 53282 |
-| **Centered Compact LSH ($L=6, P=1$)** | 0.41 MB | 64.40% | 24.70 $\mu$s | 6.59% | 217803 |
-| **Centered Multi-Probe ($L=6, P=8$)** | 0.41 MB | **97.40%** | **92.15 $\mu$s** | **27.45%** | 54977 |
+| **Exact Brute-Force** | 0.00 MB | 100.00% | 170.47 $\mu$s | 100.00% | 14285 |
+| **Uncentered Classic LSH ($L=32, P=1$)** | 2.12 MB | 100.00% | 220.72 $\mu$s | 51.14% | 12815 |
+| **Uncentered Compact LSH ($L=6, P=1$)** | 0.39 MB | 82.90% | 77.98 $\mu$s | 22.11% | 39166 |
+| **Uncentered Multi-Probe ($L=6, P=8$)** | 0.39 MB | **99.80%** | 344.12 $\mu$s | 67.44% | 12957 |
+| **Centered Classic LSH ($L=32, P=1$)** | 2.17 MB | 98.00% | 124.68 $\mu$s | 25.19% | 32910 |
+| **Centered Compact LSH ($L=6, P=1$)** | 0.41 MB | 64.40% | 24.61 $\mu$s | 6.59% | 129315 |
+| **Centered Multi-Probe ($L=6, P=8$)** | 0.41 MB | **97.40%** | **99.28 $\mu$s** | **27.45%** | 47673 |
 
 See [`report/project_report.md`](report/project_report.md) for full theoretical derivations, parameter sweeps, and scaling benchmarks up to $N = 100,000$.
 
