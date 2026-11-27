@@ -456,42 +456,7 @@
         </div>
       </div>
 
-      <!-- VISUAL HARDWARE ARCHITECTURE DIAGRAMS (CPU.png + Workflow.png) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <!-- Diagram 1: Internal CPU Workload Distribution -->
-        <div class="bg-obsidian border border-amberAccent/45 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
-          <div class="flex items-center justify-between">
-            <span class="px-2.5 py-0.5 rounded bg-amberAccent/20 text-amberAccent font-mono text-[10px] font-bold uppercase">
-              Blueprint A • CPU Internal Dispatch
-            </span>
-            <span class="text-[11px] font-mono text-stoneMuted">4× OpenMP Cores • 32-Byte Aligned</span>
-          </div>
-          <div class="rounded-xl overflow-hidden border border-borderWarm bg-carbon">
-            <img src="./images/CPU.png" alt="CPU Internal Parallel Workload Distribution" class="w-full h-64 sm:h-72 object-cover hover:scale-[1.02] transition-transform duration-300" />
-          </div>
-          <p class="text-xs text-stoneMuted leading-relaxed">
-            <strong class="text-cream">Inside the Processor:</strong> Incoming query vectors enter the CPU and distribute across <strong class="text-amberAccent">4 parallel OpenMP cores</strong>, each paired with a private zero-allocation <code class="text-emeraldAccent font-mono">QueryScratchpad</code>.
-          </p>
-        </div>
-
-        <!-- Diagram 2: Scalar vs. 256-Bit AVX2 SIMD Register Flow -->
-        <div class="bg-obsidian border border-emeraldAccent/45 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
-          <div class="flex items-center justify-between">
-            <span class="px-2.5 py-0.5 rounded bg-emeraldAccent/20 text-emeraldAccent font-mono text-[10px] font-bold uppercase">
-              Blueprint B • Register-Level Vectorization
-            </span>
-            <span class="text-[11px] font-mono text-stoneMuted">1 Float/Cycle vs. 8 Floats/Cycle</span>
-          </div>
-          <div class="rounded-xl overflow-hidden border border-borderWarm bg-carbon">
-            <img src="./images/Workflow.png" alt="Scalar vs 256-Bit AVX2 SIMD Execution" class="w-full h-64 sm:h-72 object-cover hover:scale-[1.02] transition-transform duration-300" />
-          </div>
-          <p class="text-xs text-stoneMuted leading-relaxed">
-            <strong class="text-cream">Scalar vs. SIMD ALU:</strong> Instead of processing 1 float per clock cycle, our <strong class="text-emeraldAccent">256-bit AVX2 registers</strong> pack 8 floats simultaneously into the Vector ALU in a single clock tick.
-          </p>
-        </div>
-      </div>
-
-      <!-- STEP A: TOP DISPATCHER (QUERY -> CPU) -->
+      <!-- STEP A: TOP DISPATCHER WITH EMBEDDED CPU.png ARCHITECTURE -->
       <div class="flex flex-col items-center space-y-2">
         <div class="px-5 py-2.5 rounded-2xl bg-surface border border-skyAccent/50 text-center shadow-lg">
           <span class="block text-[10px] font-mono uppercase tracking-wider text-skyAccent">Incoming Workload</span>
@@ -501,21 +466,24 @@
         <!-- Down Arrow -->
         <div class="h-5 w-0.5 bg-gradient-to-b from-skyAccent to-amberAccent"></div>
 
-        <!-- Central CPU Chip Node -->
-        <div class="px-6 py-3 rounded-2xl bg-obsidian border-2 border-amberAccent/70 flex items-center gap-3 shadow-xl">
-          <div class="w-9 h-9 rounded-lg bg-amberAccent/20 border border-amberAccent flex items-center justify-center font-mono font-black text-amberAccent text-xs">
-            CPU
+        <!-- Central CPU Chip Node with Embedded CPU.png Visual -->
+        <div class="w-full max-w-2xl rounded-2xl bg-obsidian border-2 border-amberAccent/70 overflow-hidden shadow-2xl">
+          <div class="px-4 py-2.5 bg-surface/90 border-b border-borderWarm flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-0.5 rounded bg-amberAccent/20 border border-amberAccent text-amberAccent font-mono font-black text-[11px]">CPU</span>
+              <span class="text-xs sm:text-sm font-extrabold text-cream">Host Processor Dispatcher</span>
+            </div>
+            <span id="cpu-dispatch-label" class="text-[11px] font-mono text-amberAccent font-semibold">Ready to route query vector</span>
           </div>
-          <div class="text-left">
-            <span class="block text-xs font-extrabold text-cream">Host Processor Dispatcher</span>
-            <span id="cpu-dispatch-label" class="block text-[11px] font-mono text-stoneMuted">Ready to route query vector</span>
+          <div class="relative bg-carbon">
+            <img src="./images/CPU.png" alt="CPU Internal Parallel Architecture" class="w-full h-56 sm:h-64 object-cover" />
           </div>
         </div>
 
-        <!-- Fork Connector Lines -->
+        <!-- Fork Connector Lines Splitting into Sequential vs. Parallel SIMD -->
         <div class="w-full max-w-3xl grid grid-cols-2 pt-1">
-          <div class="border-t-2 border-l-2 border-roseAccent/50 h-5 rounded-tl-2xl ml-12 sm:ml-24"></div>
-          <div class="border-t-2 border-r-2 border-amberAccent/70 h-5 rounded-tr-2xl mr-12 sm:mr-24"></div>
+          <div class="border-t-2 border-l-2 border-roseAccent/50 h-6 rounded-tl-2xl ml-12 sm:ml-24"></div>
+          <div class="border-t-2 border-r-2 border-amberAccent/70 h-6 rounded-tr-2xl mr-12 sm:mr-24"></div>
         </div>
       </div>
 
@@ -680,6 +648,31 @@
         <span class="px-3 py-1.5 rounded-xl bg-emeraldAccent/15 border border-emeraldAccent/40 text-emeraldAccent font-mono text-xs font-bold self-start md:self-auto">
           Up to 8.67× Faster @ 100K Vectors
         </span>
+      </div>
+      <!-- HIGH-LEVEL SIMD REGISTER ARCHITECTURAL BREAKTHROUGH (Workflow.png) -->
+      <div class="bg-obsidian border border-emeraldAccent/45 rounded-2xl p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center shadow-xl">
+        <div class="lg:col-span-7 rounded-xl overflow-hidden border border-borderWarm bg-carbon">
+          <img src="./images/Workflow.png" alt="Scalar vs 256-Bit AVX2 SIMD Register Breakthrough" class="w-full h-64 sm:h-72 object-cover" />
+        </div>
+        <div class="lg:col-span-5 space-y-3">
+          <span class="px-2.5 py-0.5 rounded bg-emeraldAccent/15 text-emeraldAccent font-mono text-[10px] font-bold uppercase">
+            Core Hardware Breakthrough • 8× Vector Width
+          </span>
+          <h4 class="text-xl font-extrabold text-cream">Why Register-Level Vectorization Wins</h4>
+          <p class="text-xs sm:text-sm text-stoneMuted leading-relaxed">
+            Standard similarity loops feed <strong class="text-roseAccent">1 single 32-bit float per clock cycle</strong> into the ALU. By aligning every vector to <strong class="text-cream">32-byte boundaries</strong>, our C++20 kernel loads <strong class="text-amberAccent">8 floats simultaneously</strong> into 256-bit AVX2 registers—computing full cosine distance blocks in a single tick.
+          </p>
+          <div class="grid grid-cols-2 gap-2.5 pt-1 font-mono text-xs">
+            <div class="bg-surface border border-borderWarm p-2.5 rounded-xl">
+              <span class="block text-[10px] text-stoneMuted">SCALAR ALU</span>
+              <span class="font-bold text-roseAccent">1 Float / Cycle</span>
+            </div>
+            <div class="bg-surface border border-emeraldAccent/40 p-2.5 rounded-xl">
+              <span class="block text-[10px] text-stoneMuted">AVX2 VECTOR ALU</span>
+              <span class="font-bold text-emeraldAccent">8 Floats / Cycle</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1448,6 +1441,7 @@
   </script>
 </body>
 </html>
+
 
 
 
