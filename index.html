@@ -1005,6 +1005,139 @@ probe_heap.push({margin, mask ^ (1u << b)});
       </div>
     </section>
 
+    <!-- ==================================================================== -->
+    <!-- SECTION 11: THE VECTOR SEARCH DILEMMA & 4-STEP ENGINE PIPELINE -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-10">
+      <div class="text-center max-w-3xl mx-auto space-y-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">The Core Problem We Solved</span>
+        <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
+          The High-Dimensional Search Dilemma
+        </h3>
+        <p class="text-sm text-stoneMuted">
+          Why searching millions of images or AI embeddings forces systems into a painful trade-off—and how our engine breaks it.
+        </p>
+      </div>
+
+      <!-- 2-Card Dilemma Comparison (Inspired by Biometric Dilemma Layout) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-obsidian border border-roseAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
+          <div class="space-y-3">
+            <div class="w-11 h-11 rounded-xl bg-roseAccent/15 border border-roseAccent/40 text-roseAccent flex items-center justify-center font-mono font-black text-base">
+              01
+            </div>
+            <h4 class="text-xl font-black text-cream uppercase">1. Exact Brute-Force Wall</h4>
+            <p class="text-xs sm:text-sm text-stoneMuted leading-relaxed">
+              Comparing a query photo against every single item in the database guarantees 100% accuracy, but latency grows linearly. At <strong class="text-cream">100,000 vectors</strong>, a single query stalls for <strong class="text-roseAccent">5,329.88 μs (5.33 ms)</strong>—too slow for real-time AI and RAG pipelines.
+            </p>
+          </div>
+          <div class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
+            <div class="text-stoneMuted text-[10px]"># Linear Scan Bottleneck</div>
+            <div>10K Vectors  ➔ <span class="text-amberAccent">0.16 ms</span></div>
+            <div>100K Vectors ➔ <span class="text-roseAccent font-bold">5.33 ms (33× Slower Stall)</span></div>
+          </div>
+        </div>
+
+        <div class="bg-obsidian border border-amberAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
+          <div class="space-y-3">
+            <div class="w-11 h-11 rounded-xl bg-amberAccent/15 border border-amberAccent/40 text-amberAccent flex items-center justify-center font-mono font-black text-base">
+              02
+            </div>
+            <h4 class="text-xl font-black text-cream uppercase">2. Standard LSH Memory Explosion</h4>
+            <p class="text-xs sm:text-sm text-stoneMuted leading-relaxed">
+              Standard LSH avoids scanning everything, but slight camera angle or lighting noise pushes matching photos into adjacent hash folders. Fixing that traditionally requires <strong class="text-roseAccent">32+ duplicate hash tables</strong>—wasting <strong class="text-roseAccent">2.12 MB+ of RAM</strong> per 10K items.
+            </p>
+          </div>
+          <div class="bg-surface border border-emeraldAccent/40 rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
+            <div class="text-emeraldAccent text-[10px]"># Our Multi-Probe LSH Breakthrough</div>
+            <div>Only 6 Tables + 8 Neighbor Probes ➔ <span class="text-emeraldAccent font-bold">99.80% Recall @ 0.39 MB (-81.5% RAM)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4-Phase Architecture Strip (Inspired by 4-Step Juels-Sudan Grid) -->
+      <div class="pt-4 border-t border-borderWarm space-y-6">
+        <div class="text-center">
+          <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">End-to-End Execution Pipeline</span>
+          <h4 class="text-2xl font-black text-cream uppercase mt-1">The 4-Phase Multi-Probe LSH Architecture</h4>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+            <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 01</span>
+            <h5 class="font-extrabold text-base text-cream uppercase">Mean-Centering</h5>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Shifts skewed non-negative image vectors to zero-mean origin, unlocking <strong class="text-emeraldAccent">255 / 256 active folders</strong> (7.16 bits entropy) instead of leaving folders empty.
+            </p>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+            <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 02</span>
+            <h5 class="font-extrabold text-base text-cream uppercase">SimHash Projection</h5>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Projects 128-D vectors across <code class="text-cream font-mono">K=12</code> random hyperplanes in <code class="text-cream font-mono">L=6</code> compact tables—cutting index memory by <strong class="text-amberAccent">81.5%</strong>.
+            </p>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+            <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 03</span>
+            <h5 class="font-extrabold text-base text-cream uppercase">Margin-Ranked Probing</h5>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Measures boundary distance <code class="text-emeraldAccent font-mono">δ_i = |w_i · q|</code> and flips the weakest bits first—rescuing borderline matches across <code class="text-cream font-mono">P=8</code> neighbor folders.
+            </p>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+            <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 04</span>
+            <h5 class="font-extrabold text-base text-cream uppercase">AVX2 + Stamp Rerank</h5>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Deduplicates candidates in <strong class="text-emeraldAccent">O(1)</strong> via thread-local stamps and computes exact cosine similarity 8 floats at a time (<strong class="text-cream">8.67× faster</strong> at 100K scale).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 12: PROJECT TEAM & ENGINEERING DOSSIER -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-6">
+      <div class="text-center max-w-2xl mx-auto space-y-1">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">Engineering Dossier</span>
+        <h3 class="text-2xl sm:text-3xl font-black uppercase text-cream">Built & Verified By Team P22</h3>
+        <p class="text-xs sm:text-sm text-stoneMuted">M.Tech in Computer Science • BITS Pilani, Hyderabad Campus</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <a href="https://www.linkedin.com/in/chirantan-ghosh-01625a242/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-amberAccent font-bold">Systems & C++20 SIMD Lead</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Chirantan Ghosh</h4>
+            <p class="text-xs text-stoneMuted mt-1">AVX2 Kernel • Multi-Probe Engine • Interactive Studio</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
+        </a>
+
+        <a href="https://www.linkedin.com/in/vatsal-chauhan-14a45825a/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-emeraldAccent font-bold">Core Algorithms & Benchmarking</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Vatsal Chauhan</h4>
+            <p class="text-xs text-stoneMuted mt-1">SimHash Indexing • Recall@10 Telemetry • Validation</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
+        </a>
+
+        <a href="https://www.linkedin.com/in/prithviraj-kapil-b741b1211/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-skyAccent font-bold">Data Pipeline & Analysis</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Prithviraj Kapil</h4>
+            <p class="text-xs text-stoneMuted mt-1">SIFT10K/100K Corpus • Entropy Analysis • Evaluation</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
+        </a>
+      </div>
+    </section>
+
   </main>
 
   <footer class="max-w-7xl mx-auto px-6 py-6 border-t border-borderWarm/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stoneMuted">
@@ -1726,6 +1859,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
   </script>
 </body>
 </html>
+
 
 
 
