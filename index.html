@@ -784,9 +784,12 @@
     </section>
 
     <!-- ==================================================================== -->
+
+    <!-- MATTE SLATE-GRAY SECOND HALF (RAG BACKBONE TO DOSSIER) -->
+    <div class="rounded-[2rem] bg-[#141a24]/95 border border-[#2c3749] p-4 sm:p-6 space-y-8 shadow-2xl">
     <!-- SECTION 7: REAL-WORLD AI BACKBONE — HOW MULTI-PROBE LSH POWERS RAG -->
     <!-- ==================================================================== -->
-    <section id="rag-backbone" class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+    <section id="rag-backbone" class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-8">
       <div class="text-center max-w-3xl mx-auto space-y-2">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">Production AI Infrastructure</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
@@ -798,8 +801,8 @@
       </div>
 
       <!-- Interactive RAG Live Simulator -->
-      <div class="bg-obsidian border border-amberAccent/40 rounded-2xl p-5 sm:p-6 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-borderWarm pb-4">
+      <div class="bg-[#121822] border border-amberAccent/40 rounded-2xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#334155] pb-4">
           <div>
             <span class="text-[11px] font-mono font-bold uppercase text-emeraldAccent">Interactive RAG Context Retriever</span>
             <h4 class="text-base font-bold text-cream">Test How Our LSH Engine Grounds an AI Response</h4>
@@ -808,10 +811,10 @@
             <button onclick="runRagQuery(0)" id="rag-btn-0" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amberAccent text-obsidian transition cursor-pointer">
               Query: "Snowy Alpine Peaks"
             </button>
-            <button onclick="runRagQuery(1)" id="rag-btn-1" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer">
+            <button onclick="runRagQuery(1)" id="rag-btn-1" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#232d3f] border border-[#334155] text-cream hover:border-amberAccent/50 transition cursor-pointer">
               Query: "Night City Skylines"
             </button>
-            <button onclick="runRagQuery(2)" id="rag-btn-2" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer">
+            <button onclick="runRagQuery(2)" id="rag-btn-2" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#232d3f] border border-[#334155] text-cream hover:border-amberAccent/50 transition cursor-pointer">
               Query: "Suspension Bridges"
             </button>
           </div>
@@ -819,24 +822,24 @@
 
         <!-- 4-Step RAG Flow -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch text-xs">
-          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-2">
+          <div class="bg-[#232d3f] border border-[#334155] rounded-xl p-4 space-y-2">
             <span class="font-mono text-[10px] font-bold text-skyAccent uppercase">1. User Prompt</span>
             <p id="rag-prompt-text" class="font-bold text-cream text-sm">"Retrieve alpine mountain sunset scenes"</p>
             <p class="text-stoneMuted">Encoded into a 128-D query vector in real time.</p>
           </div>
 
-          <div class="bg-surface border border-amberAccent/60 rounded-xl p-4 space-y-2">
+          <div class="bg-[#232d3f] border border-amberAccent/60 rounded-xl p-4 space-y-2">
             <span class="font-mono text-[10px] font-bold text-amberAccent uppercase">2. Our Multi-Probe LSH</span>
             <p id="rag-engine-stats" class="font-mono font-bold text-emeraldAccent">Bucket #178 + 8 Probes</p>
             <p id="rag-engine-sub" class="text-stoneMuted">Pruned 93.2% of corpus • 0.39 MB RAM • 0.61 ms latency.</p>
           </div>
 
-          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-2">
+          <div class="bg-[#232d3f] border border-[#334155] rounded-xl p-4 space-y-2">
             <span class="font-mono text-[10px] font-bold text-emeraldAccent uppercase">3. Retrieved Context</span>
             <div id="rag-context-list" class="space-y-1 font-mono text-[11px] text-cream"></div>
           </div>
 
-          <div class="bg-surface border border-emeraldAccent/50 rounded-xl p-4 space-y-2">
+          <div class="bg-[#232d3f] border border-emeraldAccent/50 rounded-xl p-4 space-y-2">
             <span class="font-mono text-[10px] font-bold text-emeraldAccent uppercase">4. Grounded AI Output</span>
             <p id="rag-llm-output" class="text-stone-300 leading-relaxed"></p>
           </div>
@@ -847,7 +850,7 @@
     <!-- ==================================================================== -->
     <!-- SECTION 8: LOW-LEVEL MEMORY & ARITHMETIC PIPELINE (3-CARD CODE GRID) -->
     <!-- ==================================================================== -->
-    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+    <section class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-8">
       <div class="text-center max-w-3xl mx-auto space-y-2">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Systems Engineering</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
@@ -860,7 +863,7 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Core Component 1 -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 flex flex-col justify-between space-y-4">
           <div class="space-y-2">
             <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 1</span>
             <h4 class="text-xl font-extrabold text-cream">256-Bit AVX2 FMA Kernel</h4>
@@ -868,13 +871,13 @@
               Processes 8 single-precision floats per clock cycle using 32-byte aligned memory loads and Fused Multiply-Add instructions:
             </p>
           </div>
-          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>__m256 va = _mm256_load_ps(a + i);
+          <pre class="bg-[#232d3f] border border-[#334155] rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>__m256 va = _mm256_load_ps(a + i);
 __m256 vb = _mm256_load_ps(b + i);
 sum256 = _mm256_fmadd_ps(va, vb, sum256);</code></pre>
         </div>
 
         <!-- Core Component 2 -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 flex flex-col justify-between space-y-4">
           <div class="space-y-2">
             <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 2</span>
             <h4 class="text-xl font-extrabold text-cream">O(1) Stamp Deduplication</h4>
@@ -882,14 +885,14 @@ sum256 = _mm256_fmadd_ps(va, vb, sum256);</code></pre>
               Eliminates <code class="text-roseAccent">std::unordered_set</code> heap allocations across 48 bucket probes via generation-stamped scratchpads:
             </p>
           </div>
-          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>if (scratch.visited[id] != stamp) {
+          <pre class="bg-[#232d3f] border border-[#334155] rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>if (scratch.visited[id] != stamp) {
     scratch.visited[id] = stamp;
     candidates.push_back(id);
 }</code></pre>
         </div>
 
         <!-- Core Component 3 -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 flex flex-col justify-between space-y-4">
           <div class="space-y-2">
             <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 3</span>
             <h4 class="text-xl font-extrabold text-cream">Margin-Ranked Perturbation</h4>
@@ -897,7 +900,7 @@ sum256 = _mm256_fmadd_ps(va, vb, sum256);</code></pre>
               Ranks candidate bucket bit-flips by distance to the hyperplane boundary (<code class="text-amberAccent">δ_i = |w_i · q|</code>), probing the most uncertain bits first:
             </p>
           </div>
-          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>float margin = std::abs(dot_avx2(w, q));
+          <pre class="bg-[#232d3f] border border-[#334155] rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>float margin = std::abs(dot_avx2(w, q));
 probe_heap.push({margin, mask ^ (1u << b)});
 // Evaluates P=8 lowest-cost buckets</code></pre>
         </div>
@@ -907,7 +910,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
     <!-- ==================================================================== -->
     <!-- SECTION 9: PRIOR ART VS. OUR SOLUTIONS (PLAIN-ENGLISH COMPARISON) -->
     <!-- ==================================================================== -->
-    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+    <section class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-8">
       <div class="text-center max-w-3xl mx-auto space-y-2">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Academic & Engineering Integrity</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
@@ -920,22 +923,22 @@ probe_heap.push({margin, mask ^ (1u << b)});
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left Card: Foundational Papers & Legacy 2016 Java Repo -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-4">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 space-y-4">
           <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-amberAccent">
             <span>📚 Prior Papers & Legacy 2016 Code</span>
           </div>
 
-          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1">
+          <div class="bg-[#232d3f] border border-[#334155] rounded-xl p-4 space-y-1">
             <div class="flex justify-between items-start gap-2">
               <p class="font-bold text-cream text-sm">[1] Charikar (2002) & Lv et al. (2007)</p>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">Theory Papers</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#121822] text-stoneMuted">Theory Papers</span>
             </div>
             <p class="text-xs text-stoneMuted leading-relaxed">
               Proved the math for random divider lines (SimHash) and checking nearby folders (Multi-Probe), but left hardware speed, memory pauses, and skewed image data unsolved.
             </p>
           </div>
 
-          <div class="bg-surface border border-roseAccent/35 rounded-xl p-4 space-y-1.5">
+          <div class="bg-[#232d3f] border border-roseAccent/35 rounded-xl p-4 space-y-1.5">
             <div class="flex justify-between items-start gap-2">
               <p class="font-bold text-cream text-sm">[2] Legacy GitHub Implementation (2016–2018)</p>
               <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-roseAccent/15 text-roseAccent">100% Java • Unmaintained</span>
@@ -947,7 +950,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
         </div>
 
         <!-- Right Card: What Our Team Solved -->
-        <div class="bg-obsidian border border-emeraldAccent/50 rounded-2xl p-6 space-y-4">
+        <div class="bg-[#121822] border border-emeraldAccent/50 rounded-2xl p-6 space-y-4">
           <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-emeraldAccent">
             <span>✓ How Our Engine Solved Every Bottleneck</span>
           </div>
@@ -973,7 +976,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
     <!-- ==================================================================== -->
     <!-- SECTION 10: SYSTEM CRITIQUE & UNSOLVED CHALLENGES -->
     <!-- ==================================================================== -->
-    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+    <section class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-8">
       <div class="text-center max-w-3xl mx-auto space-y-2">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Critical Research Depth</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
@@ -985,7 +988,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-2.5">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 space-y-2.5">
           <h4 class="text-base font-extrabold text-amberAccent uppercase flex items-center gap-2">
             <span>📐</span> 1. Small-Corpus SIMD Crossover Threshold
           </h4>
@@ -994,7 +997,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
           </p>
         </div>
 
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-2.5">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-6 space-y-2.5">
           <h4 class="text-base font-extrabold text-roseAccent uppercase flex items-center gap-2">
             <span>🛡️</span> 2. Uneven Data Clustering (Skewed Vectors)
           </h4>
@@ -1008,7 +1011,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
     <!-- ==================================================================== -->
     <!-- SECTION 11: THE VECTOR SEARCH DILEMMA & 4-STEP ENGINE PIPELINE -->
     <!-- ==================================================================== -->
-    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-10">
+    <section class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-10">
       <div class="text-center max-w-3xl mx-auto space-y-2">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">The Core Problem We Solved</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
@@ -1021,7 +1024,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
 
       <!-- 2-Card Dilemma Comparison (Inspired by Biometric Dilemma Layout) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-obsidian border border-roseAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
+        <div class="bg-[#121822] border border-roseAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
           <div class="space-y-3">
             <div class="w-11 h-11 rounded-xl bg-roseAccent/15 border border-roseAccent/40 text-roseAccent flex items-center justify-center font-mono font-black text-base">
               01
@@ -1031,14 +1034,14 @@ probe_heap.push({margin, mask ^ (1u << b)});
               Comparing a query photo against every single item in the database guarantees 100% accuracy, but latency grows linearly. At <strong class="text-cream">100,000 vectors</strong>, a single query stalls for <strong class="text-roseAccent">5,329.88 μs (5.33 ms)</strong>—too slow for real-time AI and RAG pipelines.
             </p>
           </div>
-          <div class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
+          <div class="bg-[#232d3f] border border-[#334155] rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
             <div class="text-stoneMuted text-[10px]"># Linear Scan Bottleneck</div>
             <div>10K Vectors  ➔ <span class="text-amberAccent">0.16 ms</span></div>
             <div>100K Vectors ➔ <span class="text-roseAccent font-bold">5.33 ms (33× Slower Stall)</span></div>
           </div>
         </div>
 
-        <div class="bg-obsidian border border-amberAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
+        <div class="bg-[#121822] border border-amberAccent/40 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-5">
           <div class="space-y-3">
             <div class="w-11 h-11 rounded-xl bg-amberAccent/15 border border-amberAccent/40 text-amberAccent flex items-center justify-center font-mono font-black text-base">
               02
@@ -1048,7 +1051,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
               Standard LSH avoids scanning everything, but slight camera angle or lighting noise pushes matching photos into adjacent hash folders. Fixing that traditionally requires <strong class="text-roseAccent">32+ duplicate hash tables</strong>—wasting <strong class="text-roseAccent">2.12 MB+ of RAM</strong> per 10K items.
             </p>
           </div>
-          <div class="bg-surface border border-emeraldAccent/40 rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
+          <div class="bg-[#232d3f] border border-emeraldAccent/40 rounded-xl p-3.5 font-mono text-xs text-stone-300 space-y-1">
             <div class="text-emeraldAccent text-[10px]"># Our Multi-Probe LSH Breakthrough</div>
             <div>Only 6 Tables + 8 Neighbor Probes ➔ <span class="text-emeraldAccent font-bold">99.80% Recall @ 0.39 MB (-81.5% RAM)</span></div>
           </div>
@@ -1056,14 +1059,14 @@ probe_heap.push({margin, mask ^ (1u << b)});
       </div>
 
       <!-- 4-Phase Architecture Strip (Inspired by 4-Step Juels-Sudan Grid) -->
-      <div class="pt-4 border-t border-borderWarm space-y-6">
+      <div class="pt-4 border-t border-[#334155] space-y-6">
         <div class="text-center">
           <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">End-to-End Execution Pipeline</span>
           <h4 class="text-2xl font-black text-cream uppercase mt-1">The 4-Phase Multi-Probe LSH Architecture</h4>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+          <div class="bg-[#121822] border border-[#334155] p-5 rounded-2xl space-y-2">
             <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 01</span>
             <h5 class="font-extrabold text-base text-cream uppercase">Mean-Centering</h5>
             <p class="text-xs text-stoneMuted leading-relaxed">
@@ -1071,7 +1074,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
             </p>
           </div>
 
-          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+          <div class="bg-[#121822] border border-[#334155] p-5 rounded-2xl space-y-2">
             <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 02</span>
             <h5 class="font-extrabold text-base text-cream uppercase">SimHash Projection</h5>
             <p class="text-xs text-stoneMuted leading-relaxed">
@@ -1079,7 +1082,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
             </p>
           </div>
 
-          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+          <div class="bg-[#121822] border border-[#334155] p-5 rounded-2xl space-y-2">
             <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 03</span>
             <h5 class="font-extrabold text-base text-cream uppercase">Margin-Ranked Probing</h5>
             <p class="text-xs text-stoneMuted leading-relaxed">
@@ -1087,7 +1090,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
             </p>
           </div>
 
-          <div class="bg-obsidian border border-borderWarm p-5 rounded-2xl space-y-2">
+          <div class="bg-[#121822] border border-[#334155] p-5 rounded-2xl space-y-2">
             <span class="text-amberAccent font-mono text-xs font-bold uppercase">Phase 04</span>
             <h5 class="font-extrabold text-base text-cream uppercase">AVX2 + Stamp Rerank</h5>
             <p class="text-xs text-stoneMuted leading-relaxed">
@@ -1101,7 +1104,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
     <!-- ==================================================================== -->
     <!-- SECTION 12: PROJECT TEAM & ENGINEERING DOSSIER -->
     <!-- ==================================================================== -->
-    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-6">
+    <section class="bg-gradient-to-b from-[#1e2633] to-[#171e29] border border-[#334155] shadow-2xl rounded-3xl p-6 sm:p-10 space-y-6">
       <div class="text-center max-w-2xl mx-auto space-y-1">
         <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">Engineering Dossier</span>
         <h3 class="text-2xl sm:text-3xl font-black uppercase text-cream">Built & Verified By</h3>
@@ -1109,32 +1112,44 @@ probe_heap.push({margin, mask ^ (1u << b)});
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <a href="https://www.linkedin.com/in/chirantan-ghosh-01625a242/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
-          <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition">Chirantan Ghosh</h4>
+        <a href="https://www.linkedin.com/in/chirantan-ghosh-01625a242/" target="_blank" rel="noopener noreferrer" class="bg-[#121822] border border-[#334155] hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-amberAccent font-bold">Systems & C++20 SIMD Lead</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Chirantan Ghosh</h4>
+            <p class="text-xs text-stoneMuted mt-1">AVX2 Kernel • Multi-Probe Engine • Interactive Studio</p>
+          </div>
           <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
         </a>
 
-        <a href="https://www.linkedin.com/in/vatsal-chauhan-14a45825a/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
-          <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition">Vatsal Chauhan</h4>
+        <a href="https://www.linkedin.com/in/vatsal-chauhan-14a45825a/" target="_blank" rel="noopener noreferrer" class="bg-[#121822] border border-[#334155] hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-emeraldAccent font-bold">Core Algorithms & Benchmarking</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Vatsal Chauhan</h4>
+            <p class="text-xs text-stoneMuted mt-1">SimHash Indexing • Recall@10 Telemetry • Validation</p>
+          </div>
           <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
         </a>
 
-        <a href="https://www.linkedin.com/in/prithviraj-kapil-b741b1211/" target="_blank" rel="noopener noreferrer" class="bg-obsidian border border-borderWarm hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
-          <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition">Prithviraj Kapil</h4>
+        <a href="https://www.linkedin.com/in/prithviraj-kapil-b741b1211/" target="_blank" rel="noopener noreferrer" class="bg-[#121822] border border-[#334155] hover:border-amberAccent/60 rounded-2xl p-5 flex items-center justify-between transition group">
+          <div>
+            <span class="text-[10px] font-mono uppercase text-skyAccent font-bold">Data Pipeline & Analysis</span>
+            <h4 class="text-base font-extrabold text-cream group-hover:text-amberAccent transition mt-0.5">Prithviraj Kapil</h4>
+            <p class="text-xs text-stoneMuted mt-1">SIFT10K/100K Corpus • Entropy Analysis • Evaluation</p>
+          </div>
           <span class="px-2.5 py-1 rounded-lg bg-[#0a66c2]/20 text-skyAccent font-mono text-xs font-bold shrink-0">in ↗</span>
         </a>
       </div>
       <!-- Project Deliverables: Download & Online Viewer for Report (.docx) & Slides (.pptx) -->
-      <div class="pt-4 border-t border-borderWarm grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="pt-4 border-t border-[#334155] grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Technical Report Card -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="space-y-0.5">
             <span class="text-[10px] font-mono uppercase tracking-wider text-skyAccent font-bold">Full Documentation • DOCX</span>
             <h4 class="text-sm font-extrabold text-cream">Technical Project Report</h4>
             <p class="text-[11px] text-stoneMuted font-mono">LSH__Project_Report.docx</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <a href="https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fchirantan17.github.io%2FMulti-Probe-Locality-Sensitive-Hashing%2FLSH__Project_Report.docx" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-surface hover:bg-borderWarm border border-borderWarm text-xs font-bold text-cream transition">
+            <a href="https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fchirantan17.github.io%2FMulti-Probe-Locality-Sensitive-Hashing%2FLSH__Project_Report.docx" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-[#334155] text-xs font-bold text-cream transition">
               👁 View
             </a>
             <a href="./LSH__Project_Report.docx" download="LSH_Project_Report.docx" class="px-3 py-2 rounded-xl bg-amberAccent hover:bg-amber-400 text-obsidian text-xs font-extrabold transition shadow">
@@ -1144,14 +1159,14 @@ probe_heap.push({margin, mask ^ (1u << b)});
         </div>
 
         <!-- Presentation Deck Card -->
-        <div class="bg-obsidian border border-borderWarm rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="bg-[#121822] border border-[#334155] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="space-y-0.5">
             <span class="text-[10px] font-mono uppercase tracking-wider text-roseAccent font-bold">Evaluation Deck • PPTX</span>
             <h4 class="text-sm font-extrabold text-cream">Project Presentation Slides</h4>
             <p class="text-[11px] text-stoneMuted font-mono">LSH_Project_Presentation.pptx</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <a href="https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fchirantan17.github.io%2FMulti-Probe-Locality-Sensitive-Hashing%2FLSH_Project_Presentation.pptx" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-surface hover:bg-borderWarm border border-borderWarm text-xs font-bold text-cream transition">
+            <a href="https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fchirantan17.github.io%2FMulti-Probe-Locality-Sensitive-Hashing%2FLSH_Project_Presentation.pptx" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-[#334155] text-xs font-bold text-cream transition">
               👁 View
             </a>
             <a href="./LSH_Project_Presentation.pptx" download="LSH_Project_Presentation.pptx" class="px-3 py-2 rounded-xl bg-emeraldAccent hover:bg-emerald-400 text-obsidian text-xs font-extrabold transition shadow">
@@ -1162,9 +1177,11 @@ probe_heap.push({margin, mask ^ (1u << b)});
       </div>
     </section>
 
+    </div>
+
   </main>
 
-  <footer class="max-w-7xl mx-auto px-6 py-6 border-t border-borderWarm/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stoneMuted">
+  <footer class="max-w-7xl mx-auto px-6 py-6 border-t border-[#334155]/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stoneMuted">
     <span>High-Performance Multi-Probe LSH Vector Search Engine • C++20 / AVX2 / OpenMP</span>
     <div class="flex flex-wrap items-center gap-2">
       <a href="https://www.linkedin.com/in/chirantan-ghosh-01625a242/" target="_blank" rel="noopener noreferrer" class="hover:text-amberAccent transition underline decoration-borderWarm underline-offset-4">Chirantan Ghosh</a>
@@ -1260,9 +1277,9 @@ probe_heap.push({margin, mask ^ (1u << b)});
 
       const matchesContainer = document.getElementById('matched-results-list');
       matchesContainer.innerHTML = item.matches.map((m, rank) => `
-        <div class="flex items-center justify-between p-2 rounded-lg bg-surface border border-borderWarm/80 text-xs">
+        <div class="flex items-center justify-between p-2 rounded-lg bg-[#232d3f] border border-[#334155]/80 text-xs">
           <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-12 h-9 rounded overflow-hidden border border-borderWarm shrink-0 bg-obsidian">
+            <div class="w-12 h-9 rounded overflow-hidden border border-[#334155] shrink-0 bg-[#121822]">
               <img src="${item.imgPath}" alt="${m.title}" class="w-full h-full object-cover ${m.cropClass}" />
             </div>
             <div class="truncate">
@@ -1341,7 +1358,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       document.querySelectorAll('.sample-pill').forEach((btn, i) => {
         btn.className = i === idx
           ? 'sample-pill px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer bg-amberAccent text-obsidian border-amberAccent'
-          : 'sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-surface text-cream border-borderWarm hover:border-amberAccent/50';
+          : 'sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-[#232d3f] text-cream border-[#334155] hover:border-amberAccent/50';
       });
       renderEmbeddingState(SAMPLE_IMAGES[idx]);
     }
@@ -1498,7 +1515,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       runBtn.innerHTML = '<span>⏳ Plotting Live Benchmarks...</span>';
       pauseBtn.disabled = false;
       pauseBtn.innerHTML = '⏸ Pause Graphs';
-      pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+      pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
 
       ALGORITHMS.forEach(a => {
         plotHistory[a.id] = [{ t: 0, val: 0 }];
@@ -1522,7 +1539,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       } else {
         lastFrameTimestamp = performance.now();
         pauseBtn.innerHTML = '⏸ Pause Graphs';
-        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
         requestAnimationFrame(benchmarkLoop);
       }
     }
@@ -1574,7 +1591,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
         const pauseBtn = document.getElementById('btn-pause-race');
         pauseBtn.disabled = true;
         pauseBtn.innerHTML = '⏸ Pause Graphs';
-        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] border border-[#334155] text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
       }
     }
 
@@ -1602,7 +1619,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       seqGrid.innerHTML = vals.map((v, idx) => {
         const isCurrent = idx === activeSeqIdx;
         return `
-          <div class="p-1.5 rounded border ${isCurrent ? 'bg-roseAccent text-obsidian border-roseAccent font-black scale-105' : 'bg-surface border-borderWarm text-stoneMuted'} transition-all">
+          <div class="p-1.5 rounded border ${isCurrent ? 'bg-roseAccent text-obsidian border-roseAccent font-black scale-105' : 'bg-[#232d3f] border-[#334155] text-stoneMuted'} transition-all">
             <span class="block text-[8px]">D${idx}</span>
             <span class="block">${v}</span>
           </div>
@@ -1612,7 +1629,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       // 2. Parallel 8-lane AVX2 SIMD Register (all 8 lanes fire simultaneously)
       const parSimd = document.getElementById('par-simd-grid');
       parSimd.innerHTML = SIMD_A.map((v, i) => `
-        <div class="p-1.5 rounded-lg border ${simdFiring ? 'bg-amberAccent/25 border-amberAccent text-cream shadow-md scale-105' : 'bg-surface border-borderWarm text-stone-300'} transition-all">
+        <div class="p-1.5 rounded-lg border ${simdFiring ? 'bg-amberAccent/25 border-amberAccent text-cream shadow-md scale-105' : 'bg-[#232d3f] border-[#334155] text-stone-300'} transition-all">
           <span class="block text-[8px] text-stoneMuted">Lane ${i}</span>
           <span class="block font-bold">${v}</span>
           <span class="block text-[9px] text-amberAccent">×${SIMD_B[i]}</span>
@@ -1630,12 +1647,12 @@ probe_heap.push({margin, mask ^ (1u << b)});
       threadsBox.innerHTML = threadMeta.map((t, idx) => {
         const pct = Math.min(100, Math.round(parProgress[idx]));
         return `
-          <div class="bg-surface border border-borderWarm rounded-lg p-2.5 space-y-1">
+          <div class="bg-[#232d3f] border border-[#334155] rounded-lg p-2.5 space-y-1">
             <div class="flex justify-between text-[10px] font-mono">
               <span class="text-cream font-bold">${t.label}</span>
               <span class="${pct >= 100 ? 'text-emeraldAccent font-bold' : 'text-amberAccent'}">${pct}% (${t.batch})</span>
             </div>
-            <div class="w-full bg-obsidian h-1.5 rounded-full overflow-hidden">
+            <div class="w-full bg-[#121822] h-1.5 rounded-full overflow-hidden">
               <div class="bg-gradient-to-r from-amberAccent to-emeraldAccent h-full rounded-full transition-all duration-75" style="width:${pct}%"></div>
             </div>
           </div>
@@ -1654,7 +1671,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
       const pauseBtn = document.getElementById('btn-pause-hw');
       pauseBtn.disabled = false;
       pauseBtn.innerText = '⏸ Pause';
-      pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+      pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
 
       document.getElementById('seq-status').innerText = 'Scanning 1-by-1...';
       document.getElementById('seq-status').className = 'font-mono text-xs text-roseAccent font-bold';
@@ -1672,7 +1689,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
         pauseBtn.className = 'px-4 py-3 rounded-xl bg-emeraldAccent text-obsidian font-black text-xs sm:text-sm transition cursor-pointer';
       } else {
         pauseBtn.innerText = '⏸ Pause';
-        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
       }
     }
 
@@ -1709,7 +1726,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
         const pauseBtn = document.getElementById('btn-pause-hw');
         pauseBtn.disabled = true;
         pauseBtn.innerText = '⏸ Pause';
-        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-[#232d3f] border border-[#334155] text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
         renderHardwareFrames(-1, false);
       }
     }
@@ -1864,7 +1881,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
         const b = document.getElementById(`rag-btn-${i}`);
         b.className = i === idx
           ? 'rag-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amberAccent text-obsidian transition cursor-pointer'
-          : 'rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer';
+          : 'rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#232d3f] border border-[#334155] text-cream hover:border-amberAccent/50 transition cursor-pointer';
       });
       const s = RAG_SCENARIOS[idx];
       document.getElementById('rag-prompt-text').innerText = s.prompt;
@@ -1883,6 +1900,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
   </script>
 </body>
 </html>
+
 
 
 
