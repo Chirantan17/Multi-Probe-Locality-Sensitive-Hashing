@@ -1380,7 +1380,8 @@ probe_heap.push({margin, mask ^ (1u << b)});
       document.querySelectorAll('.sample-pill').forEach((btn, i) => {
         btn.className = i === idx
           ? 'sample-pill px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer bg-amberAccent text-obsidian border-amberAccent'
-          : 'sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-[#26262c] text-white border-zinc-700/90 hover:border-amberAccent/50';
+          : 'sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-[#26262c] text-white border-zinc-700/90 hover:border-amberAccent/50';
+      if (typeof clearStage1OutputsOnly === 'function') clearStage1OutputsOnly();
       });
       renderEmbeddingState(SAMPLE_IMAGES[idx]);
     }
@@ -1938,16 +1939,46 @@ probe_heap.push({margin, mask ^ (1u << b)});
       }
     }
 
+    // Deterministic signatures per scene (1:1 binary hash <-> decimal folder)
+    const SCENE_SIGNATURES = [
+      { hash: '10111100', folder: 188, bins: [78, 34, 86, 62, 48, 72, 22, 18, 42, 68, 56, 88, 60, 76, 44, 66] },
+      { hash: '01101101', folder: 109, bins: [40, 88, 92, 30, 84, 26, 76, 90, 35, 82, 44, 28, 86, 64, 91, 38] },
+      { hash: '11001011', folder: 203, bins: [64, 72, 45, 90, 82, 54, 68, 32, 85, 74, 40, 62, 28, 88, 70, 52] },
+      { hash: '01010110', folder: 86,  bins: [52, 60, 58, 66, 74, 70, 62, 55, 68, 72, 64, 58, 76, 68, 60, 64] }
+    ];
+
+    function clearStage1OutputsOnly() {
+      // Keep Source Photograph untouched; clear only Column 2 (bars/hash) and Column 3 (Top-K results)
+      const bars = document.getElementById('vector-bars') || document.querySelector('[id*="bar"]');
+      if (bars) {
+        bars.innerHTML = Array(16).fill('<div class="flex-1 h-1 bg-zinc-800 rounded-t transition-all duration-300"></div>').join('');
+      }
+      const hashEl = document.getElementById('hash-key') || document.getElementById('hash-key-display');
+      if (hashEl) hashEl.innerText = '--------';
+      const folderEl = document.getElementById('primary-folder') || document.getElementById('primary-folder-display');
+      if (folderEl) folderEl.innerText = '--';
+      const statusEl = document.getElementById('embed-status') || document.getElementById('scan-status');
+      if (statusEl) statusEl.innerText = 'Idle • Ready to Scan';
+      const pctEl = document.getElementById('embed-pct') || document.getElementById('scan-pct');
+      if (pctEl) pctEl.innerText = '0%';
+      const resultsEl = document.getElementById('top-matches-list') || document.getElementById('matches-container') || document.getElementById('top-matches');
+      if (resultsEl) {
+        resultsEl.innerHTML = '<div class="py-10 text-center text-xs font-mono text-stoneMuted border border-dashed border-borderWarm rounded-xl">Press <span class="text-amberAccent font-bold">▶ Extract Embedding</span> to run algorithm &amp; retrieve Top-K matches</div>';
+      }
+    }
+
     window.onload = () => {
       resetEmbeddingBaseline();
       runRagQuery(0);
       selectSampleImage(0);
       renderHardwareFrames(-1, false);
-      initThreeViewport();
+      initThreeViewport();
+      if (typeof clearStage1OutputsOnly === 'function') clearStage1OutputsOnly();
     };
   </script>
 </body>
 </html>
+
 
 
 
