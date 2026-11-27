@@ -1371,6 +1371,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
     }
 
     function selectSampleImage(idx) {
+      resetEmbeddingBaseline();
       currentSampleIdx = idx;
       document.getElementById('extract-progress-bar').style.width = '0%';
       document.getElementById('extract-pct-label').innerText = '0%';
@@ -1912,7 +1913,33 @@ probe_heap.push({margin, mask ^ (1u << b)});
       document.getElementById('rag-llm-output').innerText = s.llm;
     }
 
+    function resetEmbeddingBaseline() {
+      const barsContainer = document.getElementById('vector-bars');
+      if (barsContainer) {
+        barsContainer.innerHTML = Array(16).fill(
+          '<div class="flex-1 bg-zinc-800/80 rounded-t transition-all duration-300" style="height: 4%"></div>'
+        ).join('');
+      }
+      const statusEl = document.getElementById('embed-status') || document.getElementById('scan-status');
+      if (statusEl) statusEl.innerText = 'Idle • Ready to Scan';
+      const pctEl = document.getElementById('embed-pct') || document.getElementById('scan-pct');
+      if (pctEl) pctEl.innerText = '0%';
+      const progEl = document.getElementById('embed-progress') || document.getElementById('scan-progress');
+      if (progEl) progEl.style.width = '0%';
+
+      const hashEl = document.getElementById('hash-key-display') || document.getElementById('hash-key');
+      if (hashEl) hashEl.innerText = '--------';
+      const folderEl = document.getElementById('primary-folder-display') || document.getElementById('primary-folder');
+      if (folderEl) folderEl.innerText = '--';
+
+      const matchesEl = document.getElementById('top-matches-list') || document.getElementById('matches-container');
+      if (matchesEl) {
+        matchesEl.innerHTML = '<div class="text-xs font-mono text-stoneMuted text-center py-8 border border-dashed border-borderWarm rounded-xl">Awaiting vector extraction — press <span class="text-amberAccent font-bold">Extract Embedding</span></div>';
+      }
+    }
+
     window.onload = () => {
+      resetEmbeddingBaseline();
       runRagQuery(0);
       selectSampleImage(0);
       renderHardwareFrames(-1, false);
@@ -1921,6 +1948,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
   </script>
 </body>
 </html>
+
 
 
 
