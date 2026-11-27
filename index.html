@@ -891,63 +891,65 @@ probe_heap.push({margin, mask ^ (1u << b)});
     </section>
 
     <!-- ==================================================================== -->
-    <!-- SECTION 9: PRIOR ART VS. AUTHOR CONTRIBUTIONS (ACADEMIC INTEGRITY) -->
+    <!-- SECTION 9: PRIOR ART VS. OUR SOLUTIONS (PLAIN-ENGLISH COMPARISON) -->
     <!-- ==================================================================== -->
     <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
       <div class="text-center max-w-3xl mx-auto space-y-2">
-        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Academic Integrity</span>
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Academic & Engineering Integrity</span>
         <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
-          Prior Art vs. Team Contributions
+          Existing Work vs. What We Solved
         </h3>
         <p class="text-sm text-stoneMuted">
-          Clear attribution separating foundational theoretical literature from our C++20 systems implementation and empirical benchmarking.
+          Where the original research papers and older open-source prototypes stopped—and the real-world bottlenecks our C++20 engine fixed.
         </p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Left Card: Foundational Research (Prior Art) -->
+        <!-- Left Card: Foundational Papers & Legacy 2016 Java Repo -->
         <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-4">
           <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-amberAccent">
-            <span>📚 Foundational Research (Prior Art)</span>
+            <span>📚 Prior Papers & Legacy 2016 Code</span>
           </div>
 
-          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1.5">
+          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1">
             <div class="flex justify-between items-start gap-2">
-              <p class="font-bold text-cream text-sm">[1] Charikar, M. S. (2002)</p>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">STOC 2002</span>
+              <p class="font-bold text-cream text-sm">[1] Charikar (2002) & Lv et al. (2007)</p>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">Theory Papers</span>
             </div>
-            <p class="text-xs italic text-stone-300">"Similarity Estimation Techniques from Rounding Algorithms."</p>
-            <p class="text-[11px] text-stoneMuted">Established random-hyperplane SimHash for angular / cosine distance preservation.</p>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Proved the math for random divider lines (SimHash) and checking nearby folders (Multi-Probe), but left hardware speed, memory pauses, and skewed image data unsolved.
+            </p>
           </div>
 
-          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1.5">
+          <div class="bg-surface border border-roseAccent/35 rounded-xl p-4 space-y-1.5">
             <div class="flex justify-between items-start gap-2">
-              <p class="font-bold text-cream text-sm">[2] Lv, Q., Josephson, W., Wang, Z., Charikar, M., & Li, K. (2007)</p>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">VLDB 2007</span>
+              <p class="font-bold text-cream text-sm">[2] Legacy GitHub Implementation (2016–2018)</p>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-roseAccent/15 text-roseAccent">100% Java • Unmaintained</span>
             </div>
-            <p class="text-xs italic text-stone-300">"Multi-Probe LSH: Efficient Indexing for High-Dimensional Similarity Search."</p>
-            <p class="text-[11px] text-stoneMuted">Introduced step-wise perturbation probing of adjacent hash buckets to reduce table count.</p>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              An older academic Java Swing prototype (<code class="text-stone-300 font-mono">illegalnumbers/Multi-Probe-LSH</code>) that suffered from <strong class="text-roseAccent">slow one-by-one math</strong>, <strong class="text-roseAccent">Java garbage-collection pauses</strong>, no CPU vector hardware support, and broken dataset pipelines.
+            </p>
           </div>
         </div>
 
-        <!-- Right Card: Team Systems Contributions -->
-        <div class="bg-obsidian border border-emeraldAccent/40 rounded-2xl p-6 space-y-4">
-          <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-roseAccent">
-            <span>&lt;/&gt; P22 Team Systems Contributions</span>
+        <!-- Right Card: What Our Team Solved -->
+        <div class="bg-obsidian border border-emeraldAccent/50 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-emeraldAccent">
+            <span>✓ How Our Engine Solved Every Bottleneck</span>
           </div>
 
           <ul class="space-y-3.5 text-xs sm:text-sm text-stone-300 leading-relaxed">
             <li>
-              <strong class="text-cream">• Zero-Dependency C++20 & AVX2 Engine:</strong> Built a standalone 32-byte aligned vector engine (<code class="text-amberAccent font-mono">lsh_engine.hpp</code>) using explicit <code class="text-amberAccent font-mono">_mm256_fmadd_ps</code> SIMD intrinsics and OpenMP thread parallelism.
+              <strong class="text-cream">• Native C++20 + 8-Lane CPU Speed:</strong> Rebuilt from scratch with zero external dependencies, packing 8 numbers per CPU clock tick (AVX2) across multiple cores (OpenMP)—up to <strong class="text-emeraldAccent">8.67× faster</strong> at 100K vectors.
             </li>
             <li>
-              <strong class="text-cream">• O(1) Generation-Stamped Scratchpad:</strong> Replaced dynamic hash-set candidate deduplication with zero-allocation thread-local stamp arrays with 32-bit rollover safety.
+              <strong class="text-cream">• Zero Memory Pauses:</strong> Replaced slow dynamic lists and garbage collection with reusable, pre-allocated scratchpads that check duplicates in a single instant step.
             </li>
             <li>
-              <strong class="text-cream">• Geometry-Aware Mean-Centering Pipeline:</strong> Resolved SIFT quadrant skew, raising single-table bucket entropy from <strong class="text-roseAccent">5.45 bits</strong> to <strong class="text-emeraldAccent">7.16 bits</strong> (255/256 active buckets) and cutting index RAM by <strong class="text-amberAccent">81.5%</strong>.
+              <strong class="text-cream">• Fixed Empty-Folder Skew:</strong> Re-centered raw image vectors so <strong class="text-emeraldAccent">255 out of 256 folders</strong> stay balanced, slashing index RAM by <strong class="text-amberAccent">81.5%</strong> while keeping <strong class="text-emeraldAccent">99.80% accuracy</strong>.
             </li>
             <li>
-              <strong class="text-cream">• Verified CTest & Telemetry Suite:</strong> Authored 7 automated unit/parity suites and a 6-experiment empirical benchmark harness scaling from 10K to 100K vectors.
+              <strong class="text-cream">• Automated Tests & Live Visual Proof:</strong> Built 7 automated self-checks plus this interactive visual studio so every claim is measurable in real time.
             </li>
           </ul>
         </div>
@@ -1704,6 +1706,7 @@ probe_heap.push({margin, mask ^ (1u << b)});
   </script>
 </body>
 </html>
+
 
 
 
