@@ -34,6 +34,240 @@
         }
       }
     }
+    // =========================================================================
+    // DETERMINISTIC IMAGE-TO-VECTOR ENGINE (STRICT ZERO BASELINE UNTIL CLICKED)
+    // =========================================================================
+    const DETERMINISTIC_SCENES = [
+      {
+        name: 'Alpine_Ridge_01.png',
+        meta: 'Gradient Edges: High • Sunset Horizon',
+        img: './images/mountain.png',
+        // 16 deterministic normalized bin heights (15% to 92%)
+        bins: [78, 34, 86, 62, 48, 72, 22, 18, 42, 68, 56, 88, 60, 76, 44, 66],
+        hashKey: '10111100', // Binary 10111100 = Decimal 188
+        folder: 188,
+        matches: [
+          { title: '#1 Snow_Summit_14.png', sub: 'Bucket #188 (Primary)', score: '99.4%', img: './images/mountain.png' },
+          { title: '#2 Glacier_Peak_08.png', sub: 'Bucket #189 (Probed)', score: '97.8%', img: './images/mountain.png' },
+          { title: '#3 Highland_Pass_22.png', sub: 'Bucket #188 (Primary)', score: '95.1%', img: './images/mountain.png' }
+        ],
+        probes: ['#189 (Margin 0.03)', '#190 (Margin 0.07)', '#184 (Margin 0.12)']
+      },
+      {
+        name: 'Metro_Skyline_04.png',
+        meta: 'Vertical Grid Edges: Very High • Night Luminance',
+        img: './images/city.png',
+        bins: [40, 88, 92, 30, 84, 26, 76, 90, 35, 82, 44, 28, 86, 64, 91, 38],
+        hashKey: '01101101', // Binary 01101101 = Decimal 109
+        folder: 109,
+        matches: [
+          { title: '#1 Metro_Towers_19.png', sub: 'Bucket #109 (Primary)', score: '99.1%', img: './images/city.png' },
+          { title: '#2 Downtown_Dusk_03.png', sub: 'Bucket #108 (Probed)', score: '96.9%', img: './images/city.png' },
+          { title: '#3 Glass_District_11.png', sub: 'Bucket #109 (Primary)', score: '94.6%', img: './images/city.png' }
+        ],
+        probes: ['#108 (Margin 0.02)', '#111 (Margin 0.06)', '#101 (Margin 0.11)']
+      },
+      {
+        name: 'Golden_Span_07.png',
+        meta: 'Diagonal Cable Vectors • Coastal Water Reflection',
+        img: './images/bridge.png',
+        bins: [64, 72, 45, 90, 82, 54, 68, 32, 85, 74, 40, 62, 28, 88, 70, 52],
+        hashKey: '11001011', // Binary 11001011 = Decimal 203
+        folder: 203,
+        matches: [
+          { title: '#1 Bay_Crossing_02.png', sub: 'Bucket #203 (Primary)', score: '99.6%', img: './images/bridge.png' },
+          { title: '#2 Harbor_Span_17.png', sub: 'Bucket #211 (Probed)', score: '98.2%', img: './images/bridge.png' },
+          { title: '#3 Sunset_Arch_05.png', sub: 'Bucket #203 (Primary)', score: '95.8%', img: './images/bridge.png' }
+        ],
+        probes: ['#211 (Margin 0.04)', '#202 (Margin 0.08)', '#195 (Margin 0.14)']
+      },
+      {
+        name: 'Redwood_Canopy_12.png',
+        meta: 'High-Frequency Texture • Emerald Spectrum',
+        img: './images/forest.png',
+        bins: [52, 60, 58, 66, 74, 70, 62, 55, 68, 72, 64, 58, 76, 68, 60, 64],
+        hashKey: '01010110', // Binary 01010110 = Decimal 86
+        folder: 86,
+        matches: [
+          { title: '#1 Pine_Mist_09.png', sub: 'Bucket #86 (Primary)', score: '99.2%', img: './images/forest.png' },
+          { title: '#2 Cedar_Trail_15.png', sub: 'Bucket #87 (Probed)', score: '97.4%', img: './images/forest.png' },
+          { title: '#3 Alpine_Woods_21.png', sub: 'Bucket #86 (Primary)', score: '94.9%', img: './images/forest.png' }
+        ],
+        probes: ['#87 (Margin 0.03)', '#84 (Margin 0.06)', '#94 (Margin 0.10)']
+      }
+    ];
+
+    let activeSceneIndex = 0;
+    let isExtracting = false;
+
+    function clearStage1ToZeroBaseline() {
+      isExtracting = false;
+      // 1. Reset status & progress bar to 0%
+      document.querySelectorAll('[id*="status"], [id*="Status"]').forEach(el => {
+        if (el.innerText.includes('Embedding') || el.innerText.includes('Scanning') || el.innerText.includes('Idle')) {
+          el.innerText = 'Idle • Ready to Scan';
+          el.className = el.className.replace('text-emeraldAccent', 'text-stoneMuted');
+        }
+      });
+      document.querySelectorAll('[id*="pct"], [id*="Pct"], [id*="percent"]').forEach(el => {
+        if (el.innerText.includes('%')) el.innerText = '0%';
+      });
+      document.querySelectorAll('[id*="progress"], [id*="Progress"]').forEach(el => {
+        if (el.style) el.style.width = '0%';
+      });
+
+      // 2. Flatten all 16 vector bars to 0-baseline (empty dark slots, zero colored bars)
+      const barContainers = [
+        document.getElementById('vector-bars'),
+        document.getElementById('embedding-bars'),
+        document.getElementById('feature-bars')
+      ].filter(Boolean);
+
+      barContainers.forEach(container => {
+        container.innerHTML = Array(16).fill(
+          '<div class="flex-1 h-full flex items-end"><div class="w-full bg-zinc-800/40 rounded-t transition-all duration-300" style="height: 2px;"></div></div>'
+        ).join('');
+      });
+
+      // 3. Reset Hash Key & Primary Folder to blank placeholders
+      ['hash-key', 'hash-key-display', 'binary-hash'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = '--------';
+      });
+      ['primary-folder', 'primary-folder-display', 'bucket-id'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = '--';
+      });
+
+      // 4. Clear Top-K Visual Results until Extract Embedding is pressed
+      ['top-matches', 'top-matches-list', 'matches-container', 'retrieval-results'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = `
+            <div class="h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-borderWarm rounded-2xl bg-obsidian/50 space-y-1.5">
+              <span class="text-xs font-mono text-stoneMuted">No embedding extracted yet</span>
+              <span class="text-[11px] text-stoneMuted">Click <strong class="text-amberAccent">▶ Extract Embedding</strong> to hash this image</span>
+            </div>
+          `;
+        }
+      });
+      ['probe-badges', 'probed-buckets'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+      });
+    }
+
+    // Override sample selection so switching tabs ALWAYS clears back to empty baseline
+    window.selectSampleImage = function(idx) {
+      activeSceneIndex = idx;
+      const scene = DETERMINISTIC_SCENES[idx];
+
+      // Update active pill styling
+      [0, 1, 2, 3].forEach(i => {
+        const btn = document.getElementById(`sample-btn-${i}`);
+        if (btn) {
+          btn.className = i === idx
+            ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amberAccent text-obsidian transition cursor-pointer'
+            : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer';
+        }
+      });
+
+      // Update Source Photograph preview card
+      const imgEl = document.getElementById('query-preview-img') || document.getElementById('sample-img');
+      if (imgEl) imgEl.src = scene.img;
+      const nameEl = document.getElementById('query-image-name') || document.getElementById('sample-title');
+      if (nameEl) nameEl.innerText = scene.name;
+      const metaEl = document.getElementById('query-image-meta') || document.getElementById('sample-meta');
+      if (metaEl) metaEl.innerText = scene.meta;
+
+      // Strictly reset Stage 2 & Stage 3 to empty baseline
+      clearStage1ToZeroBaseline();
+    };
+
+    // Deterministic extraction triggered ONLY when user clicks "▶ Extract Embedding"
+    window.runEmbeddingExtraction = window.extractEmbedding = function() {
+      if (isExtracting) return;
+      isExtracting = true;
+      const scene = DETERMINISTIC_SCENES[activeSceneIndex];
+
+      const statusEl = document.getElementById('embed-status') || document.getElementById('scan-status');
+      const pctEl = document.getElementById('embed-pct') || document.getElementById('scan-pct');
+      const progEl = document.getElementById('embed-progress') || document.getElementById('scan-progress');
+
+      if (statusEl) {
+        statusEl.innerText = 'Scanning 128-D Keypoints...';
+        statusEl.className = statusEl.className.replace('text-stoneMuted', 'text-amberAccent');
+      }
+
+      let pct = 0;
+      const timer = setInterval(() => {
+        pct += 25;
+        if (pctEl) pctEl.innerText = `${pct}%`;
+        if (progEl) progEl.style.width = `${pct}%`;
+
+        if (pct >= 100) {
+          clearInterval(timer);
+          isExtracting = false;
+
+          if (statusEl) {
+            statusEl.innerText = '✓ 128-D Embedding Ready';
+            statusEl.className = statusEl.className.replace('text-amberAccent', 'text-emeraldAccent');
+          }
+
+          // Render exact deterministic 16-bin bars for this image
+          const barContainers = [
+            document.getElementById('vector-bars'),
+            document.getElementById('embedding-bars'),
+            document.getElementById('feature-bars')
+          ].filter(Boolean);
+
+          barContainers.forEach(container => {
+            container.innerHTML = scene.bins.map(h =>
+              `<div class="flex-1 h-full flex items-end"><div class="w-full rounded-t bg-gradient-to-t from-emeraldAccent via-amberAccent to-amber-300 transition-all duration-500" style="height: ${h}%;"></div></div>`
+            ).join('');
+          });
+
+          // Populate deterministic Hash Key & matching Decimal Primary Folder
+          ['hash-key', 'hash-key-display', 'binary-hash'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = scene.hashKey;
+          });
+          ['primary-folder', 'primary-folder-display', 'bucket-id'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = `#${scene.folder}`;
+          });
+
+          // Populate deterministic Top-3 Visual Matches & Margin-Ranked Probes
+          ['top-matches', 'top-matches-list', 'matches-container', 'retrieval-results'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.innerHTML = scene.matches.map((m, idx) => `
+                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-obsidian border ${idx === 0 ? 'border-emeraldAccent/50' : 'border-borderWarm'}">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <img src="${m.img}" alt="${m.title}" class="w-10 h-10 rounded-lg object-cover border border-borderWarm shrink-0" />
+                    <div class="min-w-0">
+                      <div class="text-xs font-extrabold text-cream truncate">${m.title}</div>
+                      <div class="text-[11px] font-mono ${m.sub.includes('Probed') ? 'text-emeraldAccent' : 'text-stoneMuted'}">${m.sub}</div>
+                    </div>
+                  </div>
+                  <span class="font-mono text-xs font-extrabold text-amberAccent shrink-0">${m.score}</span>
+                </div>
+              `).join('');
+            }
+          });
+
+          ['probe-badges', 'probed-buckets'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.innerHTML = scene.probes.map(p =>
+                `<span class="px-2 py-1 rounded bg-emeraldAccent/15 border border-emeraldAccent/40 text-emeraldAccent font-mono text-[10px]">${p}</span>`
+              ).join('');
+            }
+          });
+        }
+      }, 90);
+    };
+    window.addEventListener('DOMContentLoaded', () => { selectSampleImage(0); });
   </script>
   <style>
     body {
@@ -1945,9 +2179,244 @@ probe_heap.push({margin, mask ^ (1u << b)});
       renderHardwareFrames(-1, false);
       initThreeViewport();
     };
+    // =========================================================================
+    // DETERMINISTIC IMAGE-TO-VECTOR ENGINE (STRICT ZERO BASELINE UNTIL CLICKED)
+    // =========================================================================
+    const DETERMINISTIC_SCENES = [
+      {
+        name: 'Alpine_Ridge_01.png',
+        meta: 'Gradient Edges: High • Sunset Horizon',
+        img: './images/mountain.png',
+        // 16 deterministic normalized bin heights (15% to 92%)
+        bins: [78, 34, 86, 62, 48, 72, 22, 18, 42, 68, 56, 88, 60, 76, 44, 66],
+        hashKey: '10111100', // Binary 10111100 = Decimal 188
+        folder: 188,
+        matches: [
+          { title: '#1 Snow_Summit_14.png', sub: 'Bucket #188 (Primary)', score: '99.4%', img: './images/mountain.png' },
+          { title: '#2 Glacier_Peak_08.png', sub: 'Bucket #189 (Probed)', score: '97.8%', img: './images/mountain.png' },
+          { title: '#3 Highland_Pass_22.png', sub: 'Bucket #188 (Primary)', score: '95.1%', img: './images/mountain.png' }
+        ],
+        probes: ['#189 (Margin 0.03)', '#190 (Margin 0.07)', '#184 (Margin 0.12)']
+      },
+      {
+        name: 'Metro_Skyline_04.png',
+        meta: 'Vertical Grid Edges: Very High • Night Luminance',
+        img: './images/city.png',
+        bins: [40, 88, 92, 30, 84, 26, 76, 90, 35, 82, 44, 28, 86, 64, 91, 38],
+        hashKey: '01101101', // Binary 01101101 = Decimal 109
+        folder: 109,
+        matches: [
+          { title: '#1 Metro_Towers_19.png', sub: 'Bucket #109 (Primary)', score: '99.1%', img: './images/city.png' },
+          { title: '#2 Downtown_Dusk_03.png', sub: 'Bucket #108 (Probed)', score: '96.9%', img: './images/city.png' },
+          { title: '#3 Glass_District_11.png', sub: 'Bucket #109 (Primary)', score: '94.6%', img: './images/city.png' }
+        ],
+        probes: ['#108 (Margin 0.02)', '#111 (Margin 0.06)', '#101 (Margin 0.11)']
+      },
+      {
+        name: 'Golden_Span_07.png',
+        meta: 'Diagonal Cable Vectors • Coastal Water Reflection',
+        img: './images/bridge.png',
+        bins: [64, 72, 45, 90, 82, 54, 68, 32, 85, 74, 40, 62, 28, 88, 70, 52],
+        hashKey: '11001011', // Binary 11001011 = Decimal 203
+        folder: 203,
+        matches: [
+          { title: '#1 Bay_Crossing_02.png', sub: 'Bucket #203 (Primary)', score: '99.6%', img: './images/bridge.png' },
+          { title: '#2 Harbor_Span_17.png', sub: 'Bucket #211 (Probed)', score: '98.2%', img: './images/bridge.png' },
+          { title: '#3 Sunset_Arch_05.png', sub: 'Bucket #203 (Primary)', score: '95.8%', img: './images/bridge.png' }
+        ],
+        probes: ['#211 (Margin 0.04)', '#202 (Margin 0.08)', '#195 (Margin 0.14)']
+      },
+      {
+        name: 'Redwood_Canopy_12.png',
+        meta: 'High-Frequency Texture • Emerald Spectrum',
+        img: './images/forest.png',
+        bins: [52, 60, 58, 66, 74, 70, 62, 55, 68, 72, 64, 58, 76, 68, 60, 64],
+        hashKey: '01010110', // Binary 01010110 = Decimal 86
+        folder: 86,
+        matches: [
+          { title: '#1 Pine_Mist_09.png', sub: 'Bucket #86 (Primary)', score: '99.2%', img: './images/forest.png' },
+          { title: '#2 Cedar_Trail_15.png', sub: 'Bucket #87 (Probed)', score: '97.4%', img: './images/forest.png' },
+          { title: '#3 Alpine_Woods_21.png', sub: 'Bucket #86 (Primary)', score: '94.9%', img: './images/forest.png' }
+        ],
+        probes: ['#87 (Margin 0.03)', '#84 (Margin 0.06)', '#94 (Margin 0.10)']
+      }
+    ];
+
+    let activeSceneIndex = 0;
+    let isExtracting = false;
+
+    function clearStage1ToZeroBaseline() {
+      isExtracting = false;
+      // 1. Reset status & progress bar to 0%
+      document.querySelectorAll('[id*="status"], [id*="Status"]').forEach(el => {
+        if (el.innerText.includes('Embedding') || el.innerText.includes('Scanning') || el.innerText.includes('Idle')) {
+          el.innerText = 'Idle • Ready to Scan';
+          el.className = el.className.replace('text-emeraldAccent', 'text-stoneMuted');
+        }
+      });
+      document.querySelectorAll('[id*="pct"], [id*="Pct"], [id*="percent"]').forEach(el => {
+        if (el.innerText.includes('%')) el.innerText = '0%';
+      });
+      document.querySelectorAll('[id*="progress"], [id*="Progress"]').forEach(el => {
+        if (el.style) el.style.width = '0%';
+      });
+
+      // 2. Flatten all 16 vector bars to 0-baseline (empty dark slots, zero colored bars)
+      const barContainers = [
+        document.getElementById('vector-bars'),
+        document.getElementById('embedding-bars'),
+        document.getElementById('feature-bars')
+      ].filter(Boolean);
+
+      barContainers.forEach(container => {
+        container.innerHTML = Array(16).fill(
+          '<div class="flex-1 h-full flex items-end"><div class="w-full bg-zinc-800/40 rounded-t transition-all duration-300" style="height: 2px;"></div></div>'
+        ).join('');
+      });
+
+      // 3. Reset Hash Key & Primary Folder to blank placeholders
+      ['hash-key', 'hash-key-display', 'binary-hash'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = '--------';
+      });
+      ['primary-folder', 'primary-folder-display', 'bucket-id'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = '--';
+      });
+
+      // 4. Clear Top-K Visual Results until Extract Embedding is pressed
+      ['top-matches', 'top-matches-list', 'matches-container', 'retrieval-results'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = `
+            <div class="h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-borderWarm rounded-2xl bg-obsidian/50 space-y-1.5">
+              <span class="text-xs font-mono text-stoneMuted">No embedding extracted yet</span>
+              <span class="text-[11px] text-stoneMuted">Click <strong class="text-amberAccent">▶ Extract Embedding</strong> to hash this image</span>
+            </div>
+          `;
+        }
+      });
+      ['probe-badges', 'probed-buckets'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+      });
+    }
+
+    // Override sample selection so switching tabs ALWAYS clears back to empty baseline
+    window.selectSampleImage = function(idx) {
+      activeSceneIndex = idx;
+      const scene = DETERMINISTIC_SCENES[idx];
+
+      // Update active pill styling
+      [0, 1, 2, 3].forEach(i => {
+        const btn = document.getElementById(`sample-btn-${i}`);
+        if (btn) {
+          btn.className = i === idx
+            ? 'px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amberAccent text-obsidian transition cursor-pointer'
+            : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer';
+        }
+      });
+
+      // Update Source Photograph preview card
+      const imgEl = document.getElementById('query-preview-img') || document.getElementById('sample-img');
+      if (imgEl) imgEl.src = scene.img;
+      const nameEl = document.getElementById('query-image-name') || document.getElementById('sample-title');
+      if (nameEl) nameEl.innerText = scene.name;
+      const metaEl = document.getElementById('query-image-meta') || document.getElementById('sample-meta');
+      if (metaEl) metaEl.innerText = scene.meta;
+
+      // Strictly reset Stage 2 & Stage 3 to empty baseline
+      clearStage1ToZeroBaseline();
+    };
+
+    // Deterministic extraction triggered ONLY when user clicks "▶ Extract Embedding"
+    window.runEmbeddingExtraction = window.extractEmbedding = function() {
+      if (isExtracting) return;
+      isExtracting = true;
+      const scene = DETERMINISTIC_SCENES[activeSceneIndex];
+
+      const statusEl = document.getElementById('embed-status') || document.getElementById('scan-status');
+      const pctEl = document.getElementById('embed-pct') || document.getElementById('scan-pct');
+      const progEl = document.getElementById('embed-progress') || document.getElementById('scan-progress');
+
+      if (statusEl) {
+        statusEl.innerText = 'Scanning 128-D Keypoints...';
+        statusEl.className = statusEl.className.replace('text-stoneMuted', 'text-amberAccent');
+      }
+
+      let pct = 0;
+      const timer = setInterval(() => {
+        pct += 25;
+        if (pctEl) pctEl.innerText = `${pct}%`;
+        if (progEl) progEl.style.width = `${pct}%`;
+
+        if (pct >= 100) {
+          clearInterval(timer);
+          isExtracting = false;
+
+          if (statusEl) {
+            statusEl.innerText = '✓ 128-D Embedding Ready';
+            statusEl.className = statusEl.className.replace('text-amberAccent', 'text-emeraldAccent');
+          }
+
+          // Render exact deterministic 16-bin bars for this image
+          const barContainers = [
+            document.getElementById('vector-bars'),
+            document.getElementById('embedding-bars'),
+            document.getElementById('feature-bars')
+          ].filter(Boolean);
+
+          barContainers.forEach(container => {
+            container.innerHTML = scene.bins.map(h =>
+              `<div class="flex-1 h-full flex items-end"><div class="w-full rounded-t bg-gradient-to-t from-emeraldAccent via-amberAccent to-amber-300 transition-all duration-500" style="height: ${h}%;"></div></div>`
+            ).join('');
+          });
+
+          // Populate deterministic Hash Key & matching Decimal Primary Folder
+          ['hash-key', 'hash-key-display', 'binary-hash'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = scene.hashKey;
+          });
+          ['primary-folder', 'primary-folder-display', 'bucket-id'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = `#${scene.folder}`;
+          });
+
+          // Populate deterministic Top-3 Visual Matches & Margin-Ranked Probes
+          ['top-matches', 'top-matches-list', 'matches-container', 'retrieval-results'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.innerHTML = scene.matches.map((m, idx) => `
+                <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-obsidian border ${idx === 0 ? 'border-emeraldAccent/50' : 'border-borderWarm'}">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <img src="${m.img}" alt="${m.title}" class="w-10 h-10 rounded-lg object-cover border border-borderWarm shrink-0" />
+                    <div class="min-w-0">
+                      <div class="text-xs font-extrabold text-cream truncate">${m.title}</div>
+                      <div class="text-[11px] font-mono ${m.sub.includes('Probed') ? 'text-emeraldAccent' : 'text-stoneMuted'}">${m.sub}</div>
+                    </div>
+                  </div>
+                  <span class="font-mono text-xs font-extrabold text-amberAccent shrink-0">${m.score}</span>
+                </div>
+              `).join('');
+            }
+          });
+
+          ['probe-badges', 'probed-buckets'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.innerHTML = scene.probes.map(p =>
+                `<span class="px-2 py-1 rounded bg-emeraldAccent/15 border border-emeraldAccent/40 text-emeraldAccent font-mono text-[10px]">${p}</span>`
+              ).join('');
+            }
+          });
+        }
+      }, 90);
+    };
+    window.addEventListener('DOMContentLoaded', () => { selectSampleImage(0); });
   </script>
 </body>
 </html>
+
 
 
 
