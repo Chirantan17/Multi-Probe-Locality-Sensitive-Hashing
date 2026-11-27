@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Multi-Probe LSH — Visual Image Search & Hardware Engine</title>
+  <title>Multi-Probe LSH — Visual Vector Search & Parallel Hardware Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -19,15 +19,17 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            obsidian: '#0b0a09',
-            charcoal: '#141210',
-            stoneCard: '#1c1917',
-            stoneBorder: '#292524',
-            amberGlow: '#f59e0b',
-            copperGlow: '#ea580c',
-            mintGlow: '#10b981',
-            creamText: '#fafaf9',
-            mutedStone: '#a8a29e'
+            obsidian: '#09090b',
+            carbon: '#121110',
+            surface: '#181615',
+            borderWarm: '#2c2825',
+            amberAccent: '#f59e0b',
+            copperAccent: '#ea580c',
+            emeraldAccent: '#10b981',
+            roseAccent: '#f43f5e',
+            skyAccent: '#38bdf8',
+            cream: '#fafaf9',
+            stoneMuted: '#a8a29e'
           }
         }
       }
@@ -35,698 +37,1114 @@
   </script>
   <style>
     body {
-      background-color: #0b0a09;
+      background-color: #09090b;
       background-image:
-        radial-gradient(at 15% 10%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
-        radial-gradient(at 85% 85%, rgba(16, 185, 129, 0.07) 0px, transparent 50%),
-        radial-gradient(#292524 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 28px 28px;
+        radial-gradient(at 10% 5%, rgba(245, 158, 11, 0.08) 0px, transparent 45%),
+        radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.07) 0px, transparent 45%),
+        linear-gradient(to right, rgba(44, 40, 37, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(44, 40, 37, 0.25) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
       color: #fafaf9;
       overflow-x: hidden;
     }
-    .glass-panel {
-      background: rgba(20, 18, 16, 0.85);
-      backdrop-filter: blur(14px);
-      border: 1px solid #292524;
+    .panel-card {
+      background: rgba(18, 17, 16, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid #2c2825;
     }
-    .amber-ring {
-      box-shadow: 0 0 30px -8px rgba(245, 158, 11, 0.35);
+    .ours-highlight {
+      border: 2px solid #f59e0b;
+      box-shadow: 0 0 35px -6px rgba(245, 158, 11, 0.35), inset 0 0 20px -10px rgba(16, 185, 129, 0.25);
     }
-    .mint-ring {
-      box-shadow: 0 0 30px -8px rgba(16, 185, 129, 0.35);
+    @keyframes flowPacket {
+      0% { transform: translateX(-100%); opacity: 0; }
+      25% { opacity: 1; }
+      75% { opacity: 1; }
+      100% { transform: translateX(320%); opacity: 0; }
     }
-    @keyframes pulseLane {
-      0%, 100% { transform: scaleY(1); opacity: 0.85; }
-      50% { transform: scaleY(1.12); opacity: 1; }
+    .packet-stream {
+      animation: flowPacket 1.8s linear infinite;
     }
-    .simd-active {
-      animation: pulseLane 0.9s ease-in-out infinite;
+    @keyframes gearSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-    #three-canvas {
+    .spin-slow {
+      animation: gearSpin 9s linear infinite;
+    }
+    #three-viewport {
       width: 100%;
-      height: 400px;
+      height: 410px;
       border-radius: 0.75rem;
     }
   </style>
 </head>
-<body class="antialiased selection:bg-amberGlow selection:text-obsidian">
+<body class="antialiased selection:bg-amberAccent selection:text-obsidian">
 
-  <!-- Top Navigation Bar -->
-  <header class="sticky top-0 z-40 glass-panel border-b border-stoneBorder">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+  <!-- TOP NAVIGATION & DATASET / UPLOAD BAR -->
+  <header class="sticky top-0 z-50 panel-card border-b border-borderWarm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amberGlow to-copperGlow flex items-center justify-center text-obsidian font-extrabold text-lg shadow-lg">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amberAccent to-copperAccent flex items-center justify-center text-obsidian font-black text-base shadow-lg">
           LSH
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base sm:text-lg tracking-tight text-creamText">Multi-Probe Vector Search Engine</h1>
-            <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amberGlow/15 text-amberGlow border border-amberGlow/30">
-              C++20 • AVX2 • OpenMP
+            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-cream">Multi-Probe Vector Search Engine</h1>
+            <span class="hidden md:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amberAccent/15 text-amberAccent border border-amberAccent/30">
+              C++20 • AVX2 SIMD • OpenMP
             </span>
           </div>
-          <p class="text-xs text-mutedStone">Visual End-to-End Walkthrough • INRIA SIFT10K Benchmark</p>
+          <p class="text-[11px] text-stoneMuted">End-to-End Image Embedding, Multi-Probe Routing & Live Telemetry Workbench</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-stoneCard border border-stoneBorder text-xs">
-          <span class="w-2 h-2 rounded-full bg-mintGlow animate-ping"></span>
-          <span id="sync-status" class="text-stone-300 font-medium">Telemetry Calibrated</span>
+      <!-- Compact Left Subtab (SIFT10K) + Right Upload Button -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-borderWarm text-xs">
+          <span class="w-2 h-2 rounded-full bg-emeraldAccent animate-pulse"></span>
+          <span class="text-stoneMuted font-medium">Dataset:</span>
+          <span class="font-mono font-bold text-cream">INRIA SIFT10K</span>
+          <span class="hidden sm:inline text-[10px] font-mono text-amberAccent bg-amberAccent/10 px-1.5 py-0.5 rounded">10,000 × 128-D</span>
         </div>
-        <button onclick="syncLiveResults()" class="px-3.5 py-1.5 rounded-xl bg-amberGlow hover:bg-amber-400 text-obsidian font-bold text-xs transition shadow-md cursor-pointer">
-          ↻ Sync Live Results
-        </button>
       </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
 
-    <!-- HERO SECTION: Plain-English Value Proposition + Headline Metrics -->
-    <section class="glass-panel rounded-3xl p-6 sm:p-10 relative overflow-hidden">
+    <!-- ==================================================================== -->
+    <!-- SECTION 1: HERO & EXECUTIVE PERFORMANCE SUMMARY -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div class="lg:col-span-7 space-y-4">
-          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stoneCard border border-stoneBorder text-xs font-semibold text-amberGlow">
-            <span>✦</span> How Computers Find Similar Images in Microseconds
-          </span>
-          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight text-creamText">
-            We cut search memory by <span class="text-transparent bg-clip-text bg-gradient-to-r from-amberGlow to-copperGlow">81.5%</span> while keeping <span class="text-mintGlow">99.8%</span> accuracy.
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-borderWarm text-xs font-semibold text-amberAccent">
+            <span>✦</span> High-Speed Visual Similarity Search Without Memory Bloat
+          </div>
+          <h2 class="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-cream">
+            Slashing Index RAM by <span class="text-transparent bg-clip-text bg-gradient-to-r from-amberAccent to-copperAccent">81.5%</span> while sustaining <span class="text-emeraldAccent">99.80%</span> Accuracy.
           </h2>
-          <p class="text-sm sm:text-base text-mutedStone leading-relaxed">
-            Comparing a photo against thousands of stored images one-by-one is slow. Traditional fast-search engines fix this by creating dozens of heavy duplicate index tables—wasting RAM. Our C++20 engine uses <strong class="text-creamText">smart neighbor folder checks (Multi-Probe)</strong> paired with <strong class="text-creamText">hardware-level CPU acceleration</strong> to deliver near-exact matches on a tiny memory footprint.
+          <p class="text-sm text-stoneMuted leading-relaxed">
+            Scanning thousands of image vectors one-by-one is slow, while classic Locality-Sensitive Hashing wastes memory by duplicating dozens of tables. Our <strong class="text-cream">Multi-Probe LSH engine</strong> inspects neighboring folders around borderline matches—achieving near-perfect recall with just <strong class="text-amberAccent">6 compact tables</strong> instead of 32.
           </p>
-          <div class="flex flex-wrap gap-3 pt-2">
-            <a href="#pipeline-studio" class="px-5 py-2.5 rounded-xl bg-creamText text-obsidian font-bold text-xs sm:text-sm hover:bg-stone-200 transition">
-              Explore Image Lifecycle ↓
+          <div class="flex flex-wrap gap-3 pt-1">
+            <a href="#blackbox-machine" class="px-4 py-2.5 rounded-xl bg-cream text-obsidian font-bold text-xs hover:bg-stone-200 transition">
+              1. Image-to-Vector Machine ↓
             </a>
-            <a href="#hardware-engine" class="px-5 py-2.5 rounded-xl bg-stoneCard border border-stoneBorder text-creamText font-semibold text-xs sm:text-sm hover:border-amberGlow/50 transition">
-              See SIMD & Multi-Core Engine
+            <a href="#benchmark-arena" class="px-4 py-2.5 rounded-xl bg-amberAccent/15 border border-amberAccent/40 text-amberAccent font-bold text-xs hover:bg-amberAccent/25 transition">
+              2. 4-Algorithm Benchmark ↓
+            </a>
+            <a href="#parallel-simd-lab" class="px-4 py-2.5 rounded-xl bg-emeraldAccent/15 border border-emeraldAccent/40 text-emeraldAccent font-bold text-xs hover:bg-emeraldAccent/25 transition">
+              3. Sequential vs. Parallel & SIMD ↓
             </a>
           </div>
         </div>
 
-        <!-- 4 Executive Impact Cards -->
+        <!-- Key Numbers Grid -->
         <div class="lg:col-span-5 grid grid-cols-2 gap-3.5">
-          <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-4 amber-ring">
-            <p class="text-xs font-semibold text-mutedStone uppercase">Index RAM Saved</p>
-            <p id="metric-ram-saved" class="text-3xl font-extrabold text-amberGlow mt-1">-81.5%</p>
-            <p id="metric-ram-detail" class="text-xs text-stone-400 mt-1">2.12 MB → 0.39 MB (6 tables)</p>
+          <div class="bg-surface border border-amberAccent/50 rounded-2xl p-4">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-stoneMuted">Index Memory Saved</span>
+            <p class="text-3xl font-black text-amberAccent mt-1">-81.5%</p>
+            <p class="text-xs text-stone-400 mt-1">2.12 MB → 0.39 MB (L=6)</p>
           </div>
-          <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-4 mint-ring">
-            <p class="text-xs font-semibold text-mutedStone uppercase">Search Accuracy</p>
-            <p id="metric-recall" class="text-3xl font-extrabold text-mintGlow mt-1">99.80%</p>
-            <p class="text-xs text-stone-400 mt-1">Recall@10 on SIFT10K</p>
+          <div class="bg-surface border border-emeraldAccent/50 rounded-2xl p-4">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-stoneMuted">Retrieval Recall@10</span>
+            <p class="text-3xl font-black text-emeraldAccent mt-1">99.80%</p>
+            <p class="text-xs text-stone-400 mt-1">P=8 smart neighbor probes</p>
           </div>
-          <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-4">
-            <p class="text-xs font-semibold text-mutedStone uppercase">SIMD Lane Width</p>
-            <p class="text-3xl font-extrabold text-creamText mt-1">8x</p>
-            <p class="text-xs text-stone-400 mt-1">AVX2 256-bit parallel math</p>
+          <div class="bg-surface border border-borderWarm rounded-2xl p-4">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-stoneMuted">Bucket Entropy Balance</span>
+            <p class="text-3xl font-black text-cream mt-1">7.16 <span class="text-sm font-normal text-stoneMuted">bits</span></p>
+            <p class="text-xs text-stone-400 mt-1">255 / 256 folders utilized</p>
           </div>
-          <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-4">
-            <p class="text-xs font-semibold text-mutedStone uppercase">Memory Pauses</p>
-            <p class="text-3xl font-extrabold text-copperGlow mt-1">0</p>
-            <p class="text-xs text-stone-400 mt-1">Pre-allocated scratchpads</p>
+          <div class="bg-surface border border-borderWarm rounded-2xl p-4">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-stoneMuted">CPU Vector Acceleration</span>
+            <p class="text-3xl font-black text-skyAccent mt-1">8× SIMD</p>
+            <p class="text-xs text-stone-400 mt-1">32-byte aligned AVX2 + OpenMP</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 1: INTERACTIVE MULTI-IMAGE LIFECYCLE STUDIO -->
-    <section id="pipeline-studio" class="glass-panel rounded-3xl p-6 sm:p-8 space-y-6">
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stoneBorder pb-5">
+    <!-- ==================================================================== -->
+    <!-- SECTION 2: THE BLACK-BOX IMAGE-TO-VECTOR EMBEDDING MACHINE -->
+    <!-- ==================================================================== -->
+    <section id="blackbox-machine" class="panel-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-borderWarm pb-5">
         <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-amberGlow">Step-by-Step Visual Journey</span>
-          <h3 class="text-2xl font-bold text-creamText mt-1">From Raw Images to Instant Match</h3>
-          <p class="text-sm text-mutedStone mt-1">
-            Select a query image below to watch how multiple database images are converted into fingerprints, sorted into folders, and searched.
+          <span class="text-xs font-bold uppercase tracking-wider text-amberAccent">Stage 1 • Visual Feature Extraction & Hashing</span>
+          <h3 class="text-2xl font-extrabold text-cream mt-1">How an Image Becomes a Searchable Vector Fingerprint</h3>
+          <p class="text-sm text-stoneMuted mt-1">
+            Select any sample scene below to watch it pass through the <strong class="text-cream">Feature Extraction Black Box</strong> into a 128-number vector and Top-3 visual matches.
           </p>
         </div>
 
-        <!-- Query Image Selector -->
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-semibold text-mutedStone mr-1">Pick Query Image:</span>
-          <button onclick="selectImage(0)" id="img-btn-0" class="img-selector px-3 py-2 rounded-xl border text-xs font-bold transition cursor-pointer bg-amberGlow text-obsidian border-amberGlow">
-            🏔️ Alpine Peak
+          <button onclick="selectSampleImage(0)" id="sample-btn-0" class="sample-pill px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer bg-amberAccent text-obsidian border-amberAccent">
+            Mountain Ridge
           </button>
-          <button onclick="selectImage(1)" id="img-btn-1" class="img-selector px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-stoneCard text-creamText border-stoneBorder hover:border-amberGlow/50">
-            🏙️ Night Skyline
+          <button onclick="selectSampleImage(1)" id="sample-btn-1" class="sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-surface text-cream border-borderWarm hover:border-amberAccent/50">
+            City Skyline
           </button>
-          <button onclick="selectImage(2)" id="img-btn-2" class="img-selector px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-stoneCard text-creamText border-stoneBorder hover:border-amberGlow/50">
-            🌉 Golden Bridge
+          <button onclick="selectSampleImage(2)" id="sample-btn-2" class="sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-surface text-cream border-borderWarm hover:border-amberAccent/50">
+            Suspension Bridge
+          </button>
+          <button onclick="selectSampleImage(3)" id="sample-btn-3" class="sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-surface text-cream border-borderWarm hover:border-amberAccent/50">
+            Pine Forest
           </button>
         </div>
       </div>
 
-      <!-- 4-Stage Visual Pipeline Flow -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <!-- INPUT: Raw Image Preview -->
+        <div class="lg:col-span-3 bg-surface border border-borderWarm rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-1">
+            <span class="text-[11px] font-mono font-bold text-skyAccent uppercase">Input • Query Image</span>
+            <h4 class="text-base font-bold text-cream">1. Source Photograph</h4>
+            <p class="text-xs text-stoneMuted">Raw visual pixels before mathematical feature extraction.</p>
+          </div>
 
-        <!-- STAGE 1: Image to Vector Embedding -->
-        <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-5 flex flex-col justify-between space-y-4">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 rounded-md bg-amberGlow/15 text-amberGlow font-mono text-xs font-bold">STAGE 01</span>
-              <span class="text-xs text-mutedStone">128 Numbers</span>
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-3 flex flex-col items-center text-center space-y-2.5">
+            <div id="input-visual-box" class="w-full h-32 rounded-xl border border-amberAccent/40 overflow-hidden shadow-inner flex items-center justify-center bg-surface"></div>
+            <div class="w-full">
+              <p id="input-img-name" class="text-xs font-bold text-cream truncate">Alpine_Ridge_01.jpg</p>
+              <p id="input-img-meta" class="text-[11px] font-mono text-stoneMuted mt-0.5">Gradient Edges: High</p>
             </div>
-            <h4 class="text-base font-bold text-creamText">Visual Fingerprint</h4>
-            <p class="text-xs text-mutedStone leading-relaxed">
-              Computers don't see colors like humans—they extract edges and shapes into a list of <strong class="text-creamText">128 numbers</strong> (a vector embedding).
+          </div>
+
+          <div class="text-[11px] text-stone-400 bg-obsidian/70 px-3 py-2 rounded-lg border border-borderWarm/70 flex justify-between">
+            <span>Descriptor Format:</span>
+            <span class="text-emeraldAccent font-semibold">128-D Float</span>
+          </div>
+        </div>
+
+        <!-- CENTER: THE BLACK-BOX EMBEDDING MACHINE -->
+        <div class="lg:col-span-5 bg-gradient-to-b from-[#1d1a17] to-[#12100e] border-2 border-amberAccent/60 rounded-2xl p-5 flex flex-col justify-between space-y-4 relative overflow-hidden shadow-2xl">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-0.5 rounded bg-amberAccent/20 text-amberAccent font-mono text-[11px] font-bold">
+              BLACK-BOX EXTRACTOR
+            </span>
+            <span class="text-xs font-mono text-stoneMuted flex items-center gap-1.5">
+              <span class="inline-block spin-slow text-amberAccent">⚙</span> SIFT Vector Encoder
+            </span>
+          </div>
+
+          <div class="space-y-1">
+            <h4 class="text-lg font-extrabold text-cream">2. Vector Embedding Machine</h4>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Edge and orientation filters scan the image and compress its visual geometry into <strong class="text-cream">128 numbers</strong>, then center them around zero so every bucket stays balanced.
             </p>
           </div>
 
-          <!-- Visual Preview + Live Embedding Bars -->
-          <div class="bg-obsidian border border-stoneBorder rounded-xl p-3.5 space-y-3">
-            <div class="flex items-center gap-3">
-              <div id="preview-icon" class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 border border-amberGlow/30 flex items-center justify-center text-2xl">
-                🏔️
-              </div>
-              <div>
-                <p id="preview-title" class="text-xs font-bold text-creamText">Alpine_Peak_01.jpg</p>
-                <p id="preview-desc" class="text-[11px] text-mutedStone">High ridge contrast • Centered</p>
-              </div>
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-3.5 space-y-3">
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="text-stoneMuted">Pixels → Keypoints</span>
+              <span class="text-amberAccent font-bold">→ 128-D Vector</span>
             </div>
+
+            <div class="w-full h-2 bg-surface rounded-full overflow-hidden relative border border-borderWarm">
+              <div class="w-1/3 h-full bg-gradient-to-r from-skyAccent via-amberAccent to-emeraldAccent rounded-full packet-stream"></div>
+            </div>
+
             <div>
-              <div class="flex justify-between text-[10px] font-mono text-mutedStone mb-1">
-                <span>128-D SIFT Vector Sample</span>
-                <span class="text-amberGlow">L2 Normalized</span>
+              <div class="flex justify-between text-[10px] font-mono text-stoneMuted mb-1.5">
+                <span>Live 128-D Vector Signature</span>
+                <span class="text-emeraldAccent">Mean-Centered</span>
               </div>
-              <div id="embedding-bars" class="grid grid-cols-16 gap-1 h-12 items-end pt-1">
-                <!-- Populated dynamically -->
-              </div>
+              <div id="vector-bars-container" class="grid grid-cols-16 gap-1 h-16 items-end bg-surface/60 p-2 rounded-lg border border-borderWarm/60"></div>
             </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] font-mono text-stoneMuted">
+            <span>Hash Key: <strong id="out-binary-code" class="text-amberAccent">10110010</strong></span>
+            <span>Primary Folder: <strong id="out-bucket-id" class="text-cream">#178</strong></span>
           </div>
         </div>
 
-        <!-- STAGE 2: Smart Folder Hashing -->
-        <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-5 flex flex-col justify-between space-y-4">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 rounded-md bg-copperGlow/15 text-copperGlow font-mono text-xs font-bold">STAGE 02</span>
-              <span class="text-xs text-mutedStone">K=8 Dividers</span>
-            </div>
-            <h4 class="text-base font-bold text-creamText">8-Bit Folder Code</h4>
-            <p class="text-xs text-mutedStone leading-relaxed">
-              8 random dividers slice the space. Landing on the front gives a <code class="text-amberGlow">1</code>, back gives a <code class="text-stone-400">0</code>—creating an instant folder ID.
+        <!-- OUTPUT: Top-3 Matched Database Images -->
+        <div class="lg:col-span-4 bg-surface border border-borderWarm rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-1">
+            <span class="text-[11px] font-mono font-bold text-emeraldAccent uppercase">Output • Retrieved Matches</span>
+            <h4 class="text-base font-bold text-cream">3. Top-K Visual Results</h4>
+            <p class="text-xs text-stoneMuted">
+              Retrieved from primary folder + <strong class="text-emeraldAccent">8 probed neighbor folders</strong> across 6 compact tables.
             </p>
           </div>
 
-          <div class="bg-obsidian border border-stoneBorder rounded-xl p-3.5 space-y-3">
-            <div class="flex justify-between items-center text-xs">
-              <span class="text-mutedStone">Binary Signature:</span>
-              <span id="hash-bits-display" class="font-mono font-bold text-amberGlow tracking-widest">10110010</span>
-            </div>
-            <div class="flex justify-between items-center text-xs">
-              <span class="text-mutedStone">Assigned Folder:</span>
-              <span id="folder-id-display" class="px-2 py-0.5 rounded bg-stoneCard border border-stoneBorder font-mono font-bold text-creamText">Folder #178</span>
-            </div>
-            <div class="pt-1 border-t border-stoneBorder/70">
-              <p class="text-[11px] text-mutedStone">
-                <span class="text-mintGlow font-semibold">Balanced Spread:</span> Mean-centering ensures 255 of 256 folders are actively used.
-              </p>
-            </div>
-          </div>
+          <div id="matched-results-list" class="bg-obsidian border border-borderWarm rounded-xl p-3 space-y-2.5"></div>
+          <div id="out-neighbor-pills" class="flex flex-wrap gap-1.5 font-mono text-[10px]"></div>
         </div>
-
-        <!-- STAGE 3: Multi-Probe Neighbor Rescue -->
-        <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-5 flex flex-col justify-between space-y-4">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 rounded-md bg-mintGlow/15 text-mintGlow font-mono text-xs font-bold">STAGE 03</span>
-              <span class="text-xs text-mutedStone">P=8 Probes</span>
-            </div>
-            <h4 class="text-base font-bold text-creamText">Multi-Probe Rescue</h4>
-            <p class="text-xs text-mutedStone leading-relaxed">
-              Similar photos sometimes land right across a divider line. Instead of building 32 heavy tables, we peek into the <strong class="text-creamText">8 closest neighbor folders</strong>.
-            </p>
-          </div>
-
-          <div class="bg-obsidian border border-stoneBorder rounded-xl p-3.5 space-y-2.5">
-            <div class="flex items-center justify-between text-[11px]">
-              <span class="text-mutedStone">Primary Folder:</span>
-              <span id="probe-primary" class="font-mono text-creamText font-bold">#178 (Exact)</span>
-            </div>
-            <div class="flex items-center justify-between text-[11px]">
-              <span class="text-mutedStone">Borderline Bit Flip:</span>
-              <span id="probe-neighbor" class="font-mono text-mintGlow font-bold">#179 (Margin 0.04)</span>
-            </div>
-            <div class="w-full bg-stoneCard rounded-full h-2 overflow-hidden mt-1">
-              <div class="bg-gradient-to-r from-amberGlow to-mintGlow h-full rounded-full" style="width: 99.8%"></div>
-            </div>
-            <p class="text-[11px] text-mintGlow font-semibold text-right">99.8% Match Recovery</p>
-          </div>
-        </div>
-
-        <!-- STAGE 4: Multi-Image Candidate Ranking -->
-        <div class="bg-stoneCard border border-stoneBorder rounded-2xl p-5 flex flex-col justify-between space-y-4">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 rounded-md bg-creamText/15 text-creamText font-mono text-xs font-bold">STAGE 04</span>
-              <span class="text-xs text-mutedStone">Top-K Output</span>
-            </div>
-            <h4 class="text-base font-bold text-creamText">Ranked Visual Matches</h4>
-            <p class="text-xs text-mutedStone leading-relaxed">
-              Duplicate candidates across the 6 tables are removed, and the shortlist is scored using hardware-accelerated distance checks.
-            </p>
-          </div>
-
-          <div id="matched-results-list" class="bg-obsidian border border-stoneBorder rounded-xl p-3 space-y-2">
-            <!-- Populated dynamically -->
-          </div>
-        </div>
-
       </div>
     </section>
 
-    <!-- SECTION 2: HARDWARE ACCELERATION EXPLAINED VISUALLY (SIMD + OPENMP) -->
-    <section id="hardware-engine" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <!-- Left Card: AVX2 SIMD Visual Simulator -->
-      <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-amberGlow">CPU Vectorization</span>
-            <h3 class="text-xl font-bold text-creamText mt-1">AVX2 SIMD: 8 Calculations in 1 Tick</h3>
-            <p class="text-xs sm:text-sm text-mutedStone mt-1">
-              Standard code compares numbers one by one. Our custom <strong class="text-creamText">32-byte aligned memory</strong> packs 8 numbers into a single wide CPU register to compute similarity 8× faster.
-            </p>
-          </div>
-          <button onclick="runSimdPulse()" class="shrink-0 px-3.5 py-2 rounded-xl bg-amberGlow/15 hover:bg-amberGlow/25 text-amberGlow border border-amberGlow/30 text-xs font-bold transition cursor-pointer">
-            ▶ Fire SIMD Cycle
-          </button>
-        </div>
-
-        <!-- 8-Lane Visual Register -->
-        <div class="bg-obsidian border border-stoneBorder rounded-2xl p-4 space-y-3">
-          <div class="flex justify-between text-[11px] font-mono text-mutedStone">
-            <span>256-Bit AVX2 Hardware Register</span>
-            <span id="simd-cycle-status" class="text-mintGlow">8 Floats / Clock Cycle</span>
-          </div>
-
-          <div class="grid grid-cols-8 gap-1.5 text-center font-mono text-xs" id="simd-lanes">
-            <!-- 8 Lanes rendered by JS -->
-          </div>
-
-          <div class="flex items-center justify-between text-[11px] text-stone-400 pt-2 border-t border-stoneBorder/70">
-            <span>Alignment: <strong class="text-creamText">32-Byte Boundary</strong></span>
-            <span>Instruction: <strong class="text-amberGlow">Fused Multiply-Add</strong></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Card: OpenMP Multi-Core Parallelism + Zero-Allocation -->
-      <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-mintGlow">Multi-Core Execution</span>
-            <h3 class="text-xl font-bold text-creamText mt-1">OpenMP Workers & Zero Memory Pauses</h3>
-            <p class="text-xs sm:text-sm text-mutedStone mt-1">
-              Incoming image searches are split across all CPU cores simultaneously. Each worker core reuses its own private <strong class="text-creamText">QueryScratchpad</strong>—never waiting on OS memory allocation.
-            </p>
-          </div>
-          <button onclick="simulateParallelBatch()" class="shrink-0 px-3.5 py-2 rounded-xl bg-mintGlow/15 hover:bg-mintGlow/25 text-mintGlow border border-mintGlow/30 text-xs font-bold transition cursor-pointer">
-            ⚡ Dispatch Batch
-          </button>
-        </div>
-
-        <!-- 4 Worker Cores Visualizer -->
-        <div class="bg-obsidian border border-stoneBorder rounded-2xl p-4 space-y-2.5" id="openmp-cores">
-          <!-- Populated dynamically -->
-        </div>
-      </div>
-
-    </section>
-
-    <!-- SECTION 3: INTERACTIVE 3D BOUNDARY EXPLORER & BENCHMARK TABLE -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-      <!-- 3D Vector Space (7 cols) -->
-      <div class="lg:col-span-7 glass-panel rounded-3xl p-6 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-lg font-bold text-creamText">Interactive 3D Divider Space</h3>
-            <p class="text-xs text-mutedStone">Drag to rotate. Toggle between 1-Probe and Multi-Probe to see how neighbor checks rescue boundary matches.</p>
-          </div>
-          <div class="flex bg-obsidian p-1 rounded-xl border border-stoneBorder text-xs">
-            <button onclick="set3DMode('classic')" id="btn-3d-classic" class="px-3 py-1.5 rounded-lg font-semibold text-mutedStone hover:text-creamText transition cursor-pointer">
-              1-Probe (Misses Edge)
-            </button>
-            <button onclick="set3DMode('multiprobe')" id="btn-3d-mp" class="px-3 py-1.5 rounded-lg font-bold bg-amberGlow text-obsidian transition cursor-pointer">
-              Multi-Probe (Rescues)
-            </button>
-          </div>
-        </div>
-
-        <div class="relative">
-          <div id="three-canvas" class="bg-obsidian border border-stoneBorder overflow-hidden"></div>
-          <div id="three-caption" class="mt-3 p-3 rounded-xl bg-stoneCard border border-stoneBorder text-xs text-stone-300 flex items-center justify-between">
-            <span><strong class="text-mintGlow">✓ Multi-Probe Active:</strong> Query vector (amber) sits near the divider plane and rescues the true neighbor (emerald) across the boundary.</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empirical Comparison Table (5 cols) -->
-      <div class="lg:col-span-5 glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-4">
-        <div class="space-y-1">
-          <span class="text-xs font-bold uppercase tracking-wider text-amberGlow">Measured C++20 Results</span>
-          <h3 class="text-lg font-bold text-creamText">Why Multi-Probe Wins</h3>
-          <p class="text-xs text-mutedStone">Benchmarked on 10,000 128-D image descriptors (INRIA SIFT10K).</p>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-stoneCard text-mutedStone uppercase text-[10px] border-b border-stoneBorder">
-              <tr>
-                <th class="p-3 rounded-tl-lg">Engine Mode</th>
-                <th class="p-3">Tables</th>
-                <th class="p-3">Index RAM</th>
-                <th class="p-3 rounded-tr-lg">Recall@10</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-stoneBorder font-mono">
-              <tr>
-                <td class="p-3 font-sans font-semibold text-stone-300">Classic LSH</td>
-                <td class="p-3 text-stone-400">32</td>
-                <td class="p-3 text-stone-300">2.12 MB</td>
-                <td class="p-3 text-stone-300">100.0%</td>
-              </tr>
-              <tr>
-                <td class="p-3 font-sans font-semibold text-stone-300">Compact LSH</td>
-                <td class="p-3 text-stone-400">6</td>
-                <td class="p-3 text-mintGlow">0.39 MB</td>
-                <td class="p-3 text-rose-400">82.90%</td>
-              </tr>
-              <tr class="bg-amberGlow/10">
-                <td class="p-3 font-sans font-bold text-amberGlow">Multi-Probe (Ours)</td>
-                <td class="p-3 text-creamText font-bold">6 (P=8)</td>
-                <td class="p-3 text-mintGlow font-bold">0.39 MB</td>
-                <td class="p-3 text-mintGlow font-bold">99.80%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="bg-obsidian border border-stoneBorder rounded-2xl p-4 space-y-2 text-xs">
-          <p class="font-bold text-creamText">Key Engineering Takeaway</p>
-          <p class="text-mutedStone leading-relaxed">
-            Shrinking from 32 tables to 6 saves <strong class="text-amberGlow">81.5% RAM</strong>, but normally drops accuracy to 82.9%. Our margin-guided Multi-Probe router recovers accuracy back to <strong class="text-mintGlow">99.80%</strong> with zero extra tables.
+    <!-- ==================================================================== -->
+    <!-- SECTION 3: 4-ALGORITHM BENCHMARK & LARGE LIVE PLOTTING CHARTS -->
+    <!-- ==================================================================== -->
+    <section id="benchmark-arena" class="panel-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderWarm pb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emeraldAccent">Stage 2 • Live Execution & Resource Comparison</span>
+          <h3 class="text-2xl font-extrabold text-cream mt-1">4-Algorithm Live Benchmark & Telemetry Plots</h3>
+          <p class="text-sm text-stoneMuted mt-1">
+            Press <strong class="text-cream">Run All 4 Algorithms</strong> to plot <strong class="text-amberAccent">Cumulative Recall@10 (%)</strong> over <strong class="text-cream">Execution Time (0s–10s)</strong> on INRIA SIFT10K. Pause anytime to inspect the curves.
           </p>
         </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="btn-run-race" onclick="startBenchmarkRace()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-amberAccent to-copperAccent hover:from-amber-400 hover:to-orange-500 text-obsidian font-black text-xs sm:text-sm uppercase tracking-wide shadow-xl transition transform active:scale-95 cursor-pointer flex items-center gap-2">
+            <span>▶ Run All 4 Algorithms</span>
+          </button>
+          <button id="btn-pause-race" onclick="togglePauseBenchmark()" disabled class="px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed">
+            ⏸ Pause Graphs
+          </button>
+        </div>
       </div>
 
+      <!-- 2x2 LARGE PLOTTING GRID -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        <!-- PLOT 1: CLASSICAL LSH -->
+        <div class="bg-surface border border-borderWarm rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-skyAccent/15 text-skyAccent">1. Baseline LSH</span>
+                <span id="status-classic" class="text-xs font-mono text-stoneMuted">Ready</span>
+              </div>
+              <h4 class="text-lg font-extrabold text-cream mt-1">Classical LSH (L=32 Tables, P=1)</h4>
+              <p class="text-xs text-stoneMuted">High accuracy via 32 duplicate hash tables, but consumes heavy index RAM.</p>
+            </div>
+            <div class="flex gap-2 font-mono text-xs">
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">TIME</span>
+                <span id="time-classic" class="font-bold text-skyAccent">0.00 s</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">INDEX RAM</span>
+                <span class="font-bold text-roseAccent">2.12 MB</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">RECALL@10</span>
+                <span id="recall-classic" class="font-bold text-cream">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-3">
+            <canvas id="graph-classic" width="600" height="240" class="w-full h-56 block"></canvas>
+          </div>
+        </div>
+
+        <!-- PLOT 2: COMPACT LSH -->
+        <div class="bg-surface border border-borderWarm rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-purple-500/15 text-purple-300">2. Memory-Trimmed</span>
+                <span id="status-compact" class="text-xs font-mono text-stoneMuted">Ready</span>
+              </div>
+              <h4 class="text-lg font-extrabold text-cream mt-1">Compact LSH (L=6 Tables, P=1)</h4>
+              <p class="text-xs text-stoneMuted">Slashes RAM by 81.5%, but single-bucket lookup drops borderline matches.</p>
+            </div>
+            <div class="flex gap-2 font-mono text-xs">
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">TIME</span>
+                <span id="time-compact" class="font-bold text-purple-300">0.00 s</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">INDEX RAM</span>
+                <span class="font-bold text-emeraldAccent">0.39 MB</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">RECALL@10</span>
+                <span id="recall-compact" class="font-bold text-roseAccent">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-3">
+            <canvas id="graph-compact" width="600" height="240" class="w-full h-56 block"></canvas>
+          </div>
+        </div>
+
+        <!-- PLOT 3: MULTI-PROBE LSH (HIGHLIGHTED PROPOSED ENGINE) -->
+        <div class="bg-gradient-to-b from-[#211c14] to-[#161310] ours-highlight rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-amberAccent text-obsidian">★ OUR PROPOSED ENGINE</span>
+                <span id="status-multiprobe" class="text-xs font-mono text-amberAccent font-bold">Ready</span>
+              </div>
+              <h4 class="text-lg font-black text-amberAccent mt-1">Multi-Probe LSH (L=6 Tables, P=8 Probes)</h4>
+              <p class="text-xs text-stone-300">Keeps the tiny 0.39 MB footprint (-81.5% RAM) while recovering 99.80% Recall@10.</p>
+            </div>
+            <div class="flex gap-2 font-mono text-xs">
+              <div class="bg-obsidian border border-amberAccent/40 px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">TIME</span>
+                <span id="time-multiprobe" class="font-bold text-amberAccent">0.00 s</span>
+              </div>
+              <div class="bg-obsidian border border-amberAccent/40 px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">INDEX RAM</span>
+                <span class="font-bold text-emeraldAccent">0.39 MB (-81.5%)</span>
+              </div>
+              <div class="bg-obsidian border border-amberAccent/40 px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">RECALL@10</span>
+                <span id="recall-multiprobe" class="font-bold text-emeraldAccent">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-obsidian border border-amberAccent/50 rounded-xl p-3">
+            <canvas id="graph-multiprobe" width="600" height="240" class="w-full h-56 block"></canvas>
+          </div>
+        </div>
+
+        <!-- PLOT 4: EXACT BRUTE FORCE -->
+        <div class="bg-surface border border-borderWarm rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-roseAccent/15 text-roseAccent">4. Ground Truth</span>
+                <span id="status-bruteforce" class="text-xs font-mono text-stoneMuted">Ready</span>
+              </div>
+              <h4 class="text-lg font-extrabold text-cream mt-1">Exact Brute-Force (Linear Scan)</h4>
+              <p class="text-xs text-stoneMuted">Scans 100% of stored vectors sequentially. Sets the 100% accuracy ground truth.</p>
+            </div>
+            <div class="flex gap-2 font-mono text-xs">
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">TIME</span>
+                <span id="time-bruteforce" class="font-bold text-roseAccent">0.00 s</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">SCAN</span>
+                <span class="font-bold text-stone-300">100% Corpus</span>
+              </div>
+              <div class="bg-obsidian border border-borderWarm px-2.5 py-1.5 rounded-lg text-right">
+                <span class="block text-[9px] text-stoneMuted">RECALL@10</span>
+                <span id="recall-bruteforce" class="font-bold text-cream">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-3">
+            <canvas id="graph-bruteforce" width="600" height="240" class="w-full h-56 block"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 4: SEQUENTIAL BRUTE-FORCE VS. PARALLEL MULTI-CORE + SIMD LAB -->
+    <!-- ==================================================================== -->
+    <section id="parallel-simd-lab" class="panel-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderWarm pb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amberAccent">Stage 3 • Hardware-Level Parallelism & Vectorization</span>
+          <h3 class="text-2xl font-extrabold text-cream mt-1">How We Break Sequential Queries into Multi-Core + SIMD</h3>
+          <p class="text-sm text-stoneMuted mt-1">
+            Traditional brute-force scans queries on <strong class="text-roseAccent">1 single CPU thread, 1 number at a time</strong>. Our engine splits query batches across <strong class="text-emeraldAccent">4 parallel OpenMP threads</strong> and packs <strong class="text-amberAccent">8 floats per clock tick</strong> using 256-bit AVX2 SIMD registers.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="btn-run-hw" onclick="startHardwareComparison()" class="px-5 py-3 rounded-xl bg-emeraldAccent hover:bg-emerald-400 text-obsidian font-black text-xs sm:text-sm uppercase tracking-wide shadow-xl transition transform active:scale-95 cursor-pointer">
+            ▶ Compare Sequential vs. Parallel + SIMD
+          </button>
+          <button id="btn-pause-hw" onclick="togglePauseHardware()" disabled class="px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed">
+            ⏸ Pause
+          </button>
+        </div>
+      </div>
+
+      <!-- SIDE-BY-SIDE EXECUTION COMPARISON -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT 5 COLS: SEQUENTIAL SCALAR BRUTE-FORCE (1 Core, 1 Float/Tick) -->
+        <div class="lg:col-span-5 bg-surface border border-roseAccent/40 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded bg-roseAccent/15 text-roseAccent font-mono text-[11px] font-bold">TRADITIONAL BRUTE-FORCE</span>
+              <span id="seq-status" class="font-mono text-xs text-stoneMuted">Waiting</span>
+            </div>
+            <h4 class="text-lg font-extrabold text-cream">Single-Thread Sequential Scan</h4>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              One CPU core processes Query #1, then Query #2, one scalar float at a time. Other CPU cores sit completely idle while memory stalls occur.
+            </p>
+          </div>
+
+          <!-- 16-Dimension Single-Pointer Scalar Strip -->
+          <div class="bg-obsidian border border-borderWarm rounded-xl p-4 space-y-3">
+            <div class="flex justify-between text-[11px] font-mono">
+              <span class="text-stoneMuted">Scalar Execution (1 Float / Cycle)</span>
+              <span id="seq-ops-counter" class="text-roseAccent font-bold">0 / 128 Dims</span>
+            </div>
+
+            <!-- 16 Scalar Cells (Only 1 highlighted at a time) -->
+            <div id="seq-scalar-grid" class="grid grid-cols-8 gap-1.5 font-mono text-[11px] text-center"></div>
+
+            <!-- Single Thread Queue -->
+            <div class="pt-2 border-t border-borderWarm/70 space-y-1.5">
+              <div class="flex justify-between text-[11px] font-mono">
+                <span class="text-cream">Core 0 (Overloaded):</span>
+                <span id="seq-progress-text" class="text-roseAccent font-bold">0%</span>
+              </div>
+              <div class="w-full bg-surface h-2.5 rounded-full overflow-hidden">
+                <div id="seq-progress-bar" class="bg-roseAccent h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-mono text-stoneMuted pt-1">
+                <span>Cores 1, 2, 3: <strong class="text-roseAccent">IDLE (0% Utilized)</strong></span>
+                <span>1× Scalar Speed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 7 COLS: OUR OPENMP MULTI-THREAD + 8-LANE AVX2 SIMD ENGINE -->
+        <div class="lg:col-span-7 bg-gradient-to-b from-[#201b14] to-[#141210] ours-highlight rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded bg-amberAccent text-obsidian font-mono text-[11px] font-black">★ OUR PARALLEL + AVX2 SIMD ENGINE</span>
+              <span id="par-status" class="font-mono text-xs text-emeraldAccent font-bold">Ready</span>
+            </div>
+            <h4 class="text-lg font-extrabold text-cream">4 OpenMP Threads × 8-Lane AVX2 Vectorization</h4>
+            <p class="text-xs text-stone-300 leading-relaxed">
+              We split the query batch across <strong class="text-emeraldAccent">4 parallel CPU threads</strong>, each using a private zero-allocation <code class="text-amberAccent">QueryScratchpad</code>. Inside each thread, <strong class="text-amberAccent">32-byte aligned AVX2 registers</strong> compute 8 vector dimensions simultaneously in 1 clock cycle.
+            </p>
+          </div>
+
+          <div class="bg-obsidian border border-amberAccent/40 rounded-xl p-4 space-y-4">
+            <!-- Top Row: 8-Lane 256-bit AVX2 Register Firing Simultaneously -->
+            <div class="space-y-2">
+              <div class="flex justify-between text-[11px] font-mono">
+                <span class="text-amberAccent font-bold">256-Bit AVX2 SIMD Register (8 Floats Packed in 1 Tick)</span>
+                <span id="par-simd-badge" class="text-emeraldAccent">32-Byte Aligned</span>
+              </div>
+              <div id="par-simd-grid" class="grid grid-cols-8 gap-1.5 font-mono text-[11px] text-center"></div>
+            </div>
+
+            <!-- Bottom Row: 4 Parallel OpenMP Worker Threads -->
+            <div class="pt-3 border-t border-borderWarm space-y-2">
+              <div class="flex justify-between text-[11px] font-mono text-stoneMuted">
+                <span>OpenMP Parallel Thread Pool (Zero Heap Locks)</span>
+                <span id="par-speedup-badge" class="text-amberAccent font-bold">32× Theoretical Throughput</span>
+              </div>
+              <div id="par-threads-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 5: INTERACTIVE 3D HYPERPLANE BOUNDARY EXPLORER -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-8 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emeraldAccent">Stage 4 • Geometric Intuition</span>
+          <h3 class="text-xl font-extrabold text-cream mt-0.5">Interactive 3D Hyperplane Boundary Explorer</h3>
+          <p class="text-xs text-stoneMuted mt-0.5">Drag to rotate the vector cloud. Switch between 1-Probe and Multi-Probe to see how neighbor checks rescue borderline matches.</p>
+        </div>
+        <div class="flex bg-obsidian p-1 rounded-xl border border-borderWarm text-xs">
+          <button onclick="toggle3DProbe('single')" id="btn-3d-single" class="px-3 py-1.5 rounded-lg font-semibold text-stoneMuted hover:text-cream transition cursor-pointer">
+            1-Probe (Misses Edge)
+          </button>
+          <button onclick="toggle3DProbe('multi')" id="btn-3d-multi" class="px-3 py-1.5 rounded-lg font-bold bg-amberAccent text-obsidian transition cursor-pointer">
+            Multi-Probe (Rescues)
+          </button>
+        </div>
+      </div>
+
+      <div id="three-viewport" class="bg-obsidian border border-borderWarm overflow-hidden"></div>
+
+      <div id="three-status-text" class="p-3.5 rounded-xl bg-surface border border-borderWarm text-xs text-stone-300">
+        <strong class="text-emeraldAccent">✓ Multi-Probe Rescue Active:</strong> Even when a query vector (amber) lands close to a divider hyperplane, probing the adjacent bucket recovers the true nearest neighbor (emerald).
+      </div>
     </section>
 
   </main>
 
-  <footer class="max-w-7xl mx-auto px-6 py-8 border-t border-stoneBorder/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mutedStone">
-    <span>Multi-Probe Locality-Sensitive Hashing Engine • Modern C++20</span>
+  <footer class="max-w-7xl mx-auto px-6 py-6 border-t border-borderWarm/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stoneMuted">
+    <span>High-Performance Multi-Probe LSH Vector Search Engine • C++20 / AVX2 / OpenMP</span>
     <span>Chirantan Ghosh • Vatsal Chauhan • Prithviraj Kapil</span>
   </footer>
 
   <script>
     // =========================================================================
-    // 1. MULTI-IMAGE LIFECYCLE DATA & INTERACTIVITY
+    // 1. REAL PHOTOGRAPH SCENES & BLACK-BOX VECTOR EXTRACTOR
     // =========================================================================
     const SAMPLE_IMAGES = [
       {
-        name: 'Alpine_Peak_01.jpg',
-        icon: '🏔️',
-        desc: 'Sharp diagonal ridge edges • High contrast',
+        name: 'Alpine_Ridge_01.png',
+        imgPath: './images/mountain.png',
+        meta: 'Gradient Edges: High • Sunset Horizon',
         bits: '10110010',
-        folder: 178,
-        neighborFolder: 179,
-        margin: '0.04',
-        vector: [0.82, 0.45, 0.91, 0.23, 0.67, 0.88, 0.34, 0.51, 0.79, 0.62, 0.19, 0.94, 0.55, 0.41, 0.73, 0.60],
+        bucket: 178,
+        neighbors: ['#179 (Margin 0.04)', '#176 (Margin 0.09)', '#186 (Margin 0.14)'],
+        vec: [0.85, 0.42, 0.93, 0.28, 0.71, 0.89, 0.36, 0.54, 0.81, 0.64, 0.22, 0.95, 0.58, 0.44, 0.77, 0.61],
         matches: [
-          { icon: '🏔️', title: 'Snow_Summit_14.jpg', folder: '#178 (Primary)', score: '99.4%' },
-          { icon: '⛰️', title: 'Glacier_Ridge_08.jpg', folder: '#179 (Probed)', score: '97.8%' },
-          { icon: '🗻', title: 'Highland_Pass_22.jpg', folder: '#178 (Primary)', score: '95.1%' }
+          { title: 'Snow_Summit_14.png', folder: 'Bucket #178 (Primary)', score: '99.4%', cropClass: 'object-center scale-100' },
+          { title: 'Glacier_Peak_08.png', folder: 'Bucket #179 (Probed)', score: '97.8%', cropClass: 'object-left scale-125 brightness-110' },
+          { title: 'Highland_Pass_22.png', folder: 'Bucket #178 (Primary)', score: '95.1%', cropClass: 'object-right scale-110 contrast-125' }
         ]
       },
       {
-        name: 'Night_Skyline_04.jpg',
-        icon: '🏙️',
-        desc: 'Vertical skyscraper lines • Dense grid',
+        name: 'City_Skyline_04.png',
+        imgPath: './images/city.png',
+        meta: 'Vertical Contours • Night Lights',
         bits: '01101101',
-        folder: 109,
-        neighborFolder: 108,
-        margin: '0.03',
-        vector: [0.31, 0.89, 0.76, 0.92, 0.28, 0.44, 0.85, 0.90, 0.36, 0.52, 0.81, 0.47, 0.69, 0.95, 0.33, 0.74],
+        bucket: 109,
+        neighbors: ['#108 (Margin 0.03)', '#111 (Margin 0.08)', '#101 (Margin 0.12)'],
+        vec: [0.34, 0.91, 0.78, 0.94, 0.25, 0.47, 0.86, 0.92, 0.39, 0.55, 0.83, 0.49, 0.71, 0.96, 0.31, 0.75],
         matches: [
-          { icon: '🏙️', title: 'Metro_Towers_19.jpg', folder: '#109 (Primary)', score: '99.1%' },
-          { icon: '🌃', title: 'Downtown_Dusk_03.jpg', folder: '#108 (Probed)', score: '96.9%' },
-          { icon: '🏢', title: 'Glass_District_11.jpg', folder: '#109 (Primary)', score: '94.6%' }
+          { title: 'Metro_Towers_19.png', folder: 'Bucket #109 (Primary)', score: '99.1%', cropClass: 'object-center scale-100' },
+          { title: 'Downtown_Dusk_03.png', folder: 'Bucket #108 (Probed)', score: '96.9%', cropClass: 'object-top scale-125 brightness-110' },
+          { title: 'Glass_District_11.png', folder: 'Bucket #109 (Primary)', score: '94.6%', cropClass: 'object-bottom scale-110 contrast-125' }
         ]
       },
       {
-        name: 'Golden_Bridge_09.jpg',
-        icon: '🌉',
-        desc: 'Sweeping suspension cables • Horizon symmetry',
+        name: 'Suspension_Bridge_09.png',
+        imgPath: './images/bridge.png',
+        meta: 'Diagonal Cables • Golden Hour',
         bits: '11001011',
-        folder: 203,
-        neighborFolder: 211,
-        margin: '0.05',
-        vector: [0.64, 0.71, 0.29, 0.58, 0.93, 0.84, 0.42, 0.37, 0.68, 0.89, 0.75, 0.31, 0.49, 0.62, 0.87, 0.53],
+        bucket: 203,
+        neighbors: ['#211 (Margin 0.05)', '#202 (Margin 0.07)', '#195 (Margin 0.15)'],
+        vec: [0.66, 0.73, 0.31, 0.60, 0.94, 0.85, 0.45, 0.38, 0.70, 0.90, 0.76, 0.33, 0.51, 0.64, 0.88, 0.56],
         matches: [
-          { icon: '🌉', title: 'Bay_Suspension_02.jpg', folder: '#203 (Primary)', score: '99.6%' },
-          { icon: '🌁', title: 'Harbor_Span_17.jpg', folder: '#211 (Probed)', score: '98.2%' },
-          { icon: '🌅', title: 'Sunset_Arch_05.jpg', folder: '#203 (Primary)', score: '95.8%' }
+          { title: 'Bay_Crossing_02.png', folder: 'Bucket #203 (Primary)', score: '99.6%', cropClass: 'object-center scale-100' },
+          { title: 'Harbor_Span_17.png', folder: 'Bucket #211 (Probed)', score: '98.2%', cropClass: 'object-left scale-125 brightness-110' },
+          { title: 'Sunset_Arch_05.png', folder: 'Bucket #203 (Primary)', score: '95.8%', cropClass: 'object-right scale-110 contrast-125' }
+        ]
+      },
+      {
+        name: 'Pine_Forest_12.png',
+        imgPath: './images/forest.png',
+        meta: 'High Texture Entropy • Misty Ridge',
+        bits: '00111010',
+        bucket: 58,
+        neighbors: ['#59 (Margin 0.02)', '#50 (Margin 0.06)', '#62 (Margin 0.11)'],
+        vec: [0.52, 0.68, 0.84, 0.79, 0.41, 0.63, 0.91, 0.48, 0.74, 0.82, 0.57, 0.39, 0.86, 0.72, 0.45, 0.69],
+        matches: [
+          { title: 'Evergreen_Trail_07.png', folder: 'Bucket #58 (Primary)', score: '99.3%', cropClass: 'object-center scale-100' },
+          { title: 'Timber_Valley_15.png', folder: 'Bucket #59 (Probed)', score: '97.4%', cropClass: 'object-bottom scale-125 brightness-110' },
+          { title: 'Cedar_Woods_29.png', folder: 'Bucket #58 (Primary)', score: '94.9%', cropClass: 'object-top scale-110 contrast-125' }
         ]
       }
     ];
 
-    function selectImage(idx) {
-      const item = SAMPLE_IMAGES[idx];
-      document.querySelectorAll('.img-selector').forEach((btn, i) => {
-        btn.className = i === idx
-          ? 'img-selector px-3 py-2 rounded-xl border text-xs font-bold transition cursor-pointer bg-amberGlow text-obsidian border-amberGlow'
-          : 'img-selector px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-stoneCard text-creamText border-stoneBorder hover:border-amberGlow/50';
-      });
+    function renderEmbeddingState(item) {
+      document.getElementById('input-img-name').innerText = item.name;
+      document.getElementById('input-img-meta').innerText = item.meta;
 
-      document.getElementById('preview-icon').innerText = item.icon;
-      document.getElementById('preview-title').innerText = item.name;
-      document.getElementById('preview-desc').innerText = item.desc;
+      const box = document.getElementById('input-visual-box');
+      box.innerHTML = `<img src="${item.imgPath}" alt="${item.name}" class="w-full h-full object-cover" />`;
 
-      // Render 16 representative vector bars
-      const barsContainer = document.getElementById('embedding-bars');
-      barsContainer.innerHTML = item.vector.map(val => {
-        const heightPct = Math.round(val * 100);
-        return `<div class="bg-gradient-to-t from-copperGlow to-amberGlow rounded-t-sm transition-all duration-300" style="height: ${heightPct}%"></div>`;
+      const bars = document.getElementById('vector-bars-container');
+      bars.innerHTML = item.vec.map(v => {
+        const pct = Math.max(12, Math.round(v * 100));
+        return `<div class="bg-gradient-to-t from-copperAccent to-amberAccent rounded-t-sm transition-all duration-300" style="height:${pct}%"></div>`;
       }).join('');
 
-      document.getElementById('hash-bits-display').innerText = item.bits;
-      document.getElementById('folder-id-display').innerText = `Folder #${item.folder}`;
-      document.getElementById('probe-primary').innerText = `#${item.folder} (Exact)`;
-      document.getElementById('probe-neighbor').innerText = `#${item.neighborFolder} (Margin ${item.margin})`;
+      document.getElementById('out-binary-code').innerText = item.bits;
+      document.getElementById('out-bucket-id').innerText = `#${item.bucket}`;
+
+      document.getElementById('out-neighbor-pills').innerHTML = item.neighbors.map(n =>
+        `<span class="px-2 py-0.5 rounded bg-emeraldAccent/15 border border-emeraldAccent/30 text-emeraldAccent">${n}</span>`
+      ).join('');
 
       const matchesContainer = document.getElementById('matched-results-list');
       matchesContainer.innerHTML = item.matches.map((m, rank) => `
-        <div class="flex items-center justify-between p-2 rounded-lg bg-stoneCard border border-stoneBorder/80 text-xs">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="text-base">${m.icon}</span>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface border border-borderWarm/80 text-xs">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-12 h-9 rounded overflow-hidden border border-borderWarm shrink-0 bg-obsidian">
+              <img src="${item.imgPath}" alt="${m.title}" class="w-full h-full object-cover ${m.cropClass}" />
+            </div>
             <div class="truncate">
-              <p class="font-semibold text-creamText truncate">#${rank + 1} ${m.title}</p>
-              <p class="text-[10px] font-mono ${m.folder.includes('Probed') ? 'text-mintGlow' : 'text-mutedStone'}">${m.folder}</p>
+              <p class="font-semibold text-cream truncate">#${rank + 1} ${m.title}</p>
+              <p class="text-[10px] font-mono ${m.folder.includes('Probed') ? 'text-emeraldAccent' : 'text-stoneMuted'}">${m.folder}</p>
             </div>
           </div>
-          <span class="font-mono font-bold text-amberGlow ml-2">${m.score}</span>
+          <span class="font-mono font-bold text-amberAccent ml-2 shrink-0">${m.score}</span>
         </div>
       `).join('');
     }
 
-    // =========================================================================
-    // 2. AVX2 SIMD & OPENMP VISUALIZERS
-    // =========================================================================
-    function renderSimdLanes(active = false) {
-      const container = document.getElementById('simd-lanes');
-      const valsA = ['0.82', '0.45', '0.91', '0.23', '0.67', '0.88', '0.34', '0.51'];
-      const valsB = ['0.79', '0.48', '0.89', '0.21', '0.70', '0.85', '0.31', '0.54'];
+    function selectSampleImage(idx) {
+      document.querySelectorAll('.sample-pill').forEach((btn, i) => {
+        btn.className = i === idx
+          ? 'sample-pill px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer bg-amberAccent text-obsidian border-amberAccent'
+          : 'sample-pill px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer bg-surface text-cream border-borderWarm hover:border-amberAccent/50';
+      });
+      renderEmbeddingState(SAMPLE_IMAGES[idx]);
+    }
 
-      container.innerHTML = valsA.map((v, i) => `
-        <div class="p-2 rounded-lg border ${active ? 'bg-amberGlow/20 border-amberGlow simd-active' : 'bg-stoneCard border-stoneBorder'} transition">
-          <div class="text-[9px] text-mutedStone">L${i}</div>
-          <div class="font-bold text-creamText mt-0.5">${v}</div>
-          <div class="text-[10px] text-amberGlow">×${valsB[i]}</div>
+    // =========================================================================
+    // 2. 4-ALGORITHM CUMULATIVE LIVE PLOTTING ENGINE (X: TIME 0-10s, Y: RECALL %)
+    // =========================================================================
+    const MAX_AXIS_SEC = 10.0;
+    const ALGORITHMS = [
+      { id: 'classic', durationMs: 4200, targetRecall: 100.0, recallText: '100.00%', color: '#38bdf8', fill: 'rgba(56, 189, 248, 0.14)', canvasId: 'graph-classic', curvePower: 0.55 },
+      { id: 'compact', durationMs: 2200, targetRecall: 82.9, recallText: '82.90%', color: '#c084fc', fill: 'rgba(192, 132, 252, 0.14)', canvasId: 'graph-compact', curvePower: 0.65 },
+      { id: 'multiprobe', durationMs: 5800, targetRecall: 99.8, recallText: '99.80%', color: '#f59e0b', fill: 'rgba(245, 158, 11, 0.18)', canvasId: 'graph-multiprobe', curvePower: 0.48 },
+      { id: 'bruteforce', durationMs: 10000, targetRecall: 100.0, recallText: '100.00% (GT)', color: '#f43f5e', fill: 'rgba(244, 63, 94, 0.14)', canvasId: 'graph-bruteforce', curvePower: 1.0 }
+    ];
+
+    const plotHistory = {
+      classic: [],
+      compact: [],
+      multiprobe: [],
+      bruteforce: []
+    };
+
+    let raceRunning = false;
+    let racePaused = false;
+    let accumulatedElapsed = 0;
+    let lastFrameTimestamp = 0;
+
+    function drawLiveAxisPlot(algo, isRunning) {
+      const canvas = document.getElementById(algo.canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Chart margins for clear X and Y axis labels
+      const padLeft = 48;
+      const padRight = 18;
+      const padTop = 16;
+      const padBottom = 32;
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Horizontal Y-Axis Grid Lines (0%, 25%, 50%, 75%, 100%)
+      ctx.font = '11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+
+      [0, 25, 50, 75, 100].forEach(pct => {
+        const y = padTop + plotH - (pct / 100) * plotH;
+        ctx.strokeStyle = pct === 0 ? '#44403c' : 'rgba(44, 40, 37, 0.75)';
+        ctx.lineWidth = pct === 0 ? 1.5 : 1;
+        ctx.setLineDash(pct === 0 ? [] : [4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(padLeft + plotW, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#a8a29e';
+        ctx.fillText(`${pct}%`, padLeft - 8, y);
+      });
+
+      // Vertical X-Axis Grid Lines (0s, 2s, 4s, 6s, 8s, 10s)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      [0, 2, 4, 6, 8, 10].forEach(sec => {
+        const x = padLeft + (sec / MAX_AXIS_SEC) * plotW;
+        ctx.strokeStyle = sec === 0 ? '#44403c' : 'rgba(44, 40, 37, 0.75)';
+        ctx.lineWidth = sec === 0 ? 1.5 : 1;
+        ctx.setLineDash(sec === 0 ? [] : [4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, padTop);
+        ctx.lineTo(x, padTop + plotH);
+        ctx.stroke();
+
+        ctx.fillStyle = '#a8a29e';
+        ctx.fillText(`${sec}s`, x, padTop + plotH + 6);
+      });
+      ctx.setLineDash([]);
+
+      // Axis Titles
+      ctx.fillStyle = '#78716c';
+      ctx.font = '10px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Elapsed Execution Time (Seconds)', padLeft + plotW / 2, h - 11);
+
+      ctx.save();
+      ctx.translate(12, padTop + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Recall@10 (%)', 0, 0);
+      ctx.restore();
+
+      // Plot Cumulative Curve Points
+      const pts = plotHistory[algo.id];
+      if (pts.length === 0) return;
+
+      // Area gradient under curve
+      ctx.fillStyle = algo.fill;
+      ctx.beginPath();
+      pts.forEach((pt, idx) => {
+        const px = padLeft + (pt.t / MAX_AXIS_SEC) * plotW;
+        const py = padTop + plotH - (pt.val / 100) * plotH;
+        if (idx === 0) {
+          ctx.moveTo(px, padTop + plotH);
+          ctx.lineTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      });
+      const lastPt = pts[pts.length - 1];
+      const lastPx = padLeft + (lastPt.t / MAX_AXIS_SEC) * plotW;
+      const lastPy = padTop + plotH - (lastPt.val / 100) * plotH;
+      ctx.lineTo(lastPx, padTop + plotH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Main plotted line
+      ctx.strokeStyle = algo.color;
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      pts.forEach((pt, idx) => {
+        const px = padLeft + (pt.t / MAX_AXIS_SEC) * plotW;
+        const py = padTop + plotH - (pt.val / 100) * plotH;
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+
+      // Leading Endpoint Dot & Live Value Callout
+      ctx.fillStyle = algo.color;
+      ctx.beginPath();
+      ctx.arc(lastPx, lastPy, isRunning ? 5 : 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fafaf9';
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      ctx.textAlign = lastPt.t > 8.2 ? 'right' : 'left';
+      const labelOffsetX = lastPt.t > 8.2 ? -10 : 10;
+      const labelOffsetY = lastPt.val > 88 ? 14 : -10;
+      ctx.fillText(`${lastPt.val.toFixed(1)}% @ ${lastPt.t.toFixed(1)}s`, lastPx + labelOffsetX, lastPy + labelOffsetY);
+    }
+
+    function startBenchmarkRace() {
+      raceRunning = true;
+      racePaused = false;
+      accumulatedElapsed = 0;
+      lastFrameTimestamp = performance.now();
+
+      const runBtn = document.getElementById('btn-run-race');
+      const pauseBtn = document.getElementById('btn-pause-race');
+
+      runBtn.innerHTML = '<span>⏳ Plotting Live Benchmarks...</span>';
+      pauseBtn.disabled = false;
+      pauseBtn.innerHTML = '⏸ Pause Graphs';
+      pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+
+      ALGORITHMS.forEach(a => {
+        plotHistory[a.id] = [{ t: 0, val: 0 }];
+        document.getElementById(`status-${a.id}`).innerText = 'Plotting...';
+        document.getElementById(`status-${a.id}`).className = 'text-xs font-mono text-amberAccent font-bold';
+        document.getElementById(`recall-${a.id}`).innerText = '0.0%';
+        drawLiveAxisPlot(a, true);
+      });
+
+      requestAnimationFrame(benchmarkLoop);
+    }
+
+    function togglePauseBenchmark() {
+      if (!raceRunning) return;
+      racePaused = !racePaused;
+      const pauseBtn = document.getElementById('btn-pause-race');
+
+      if (racePaused) {
+        pauseBtn.innerHTML = '▶ Resume Graphs';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-emeraldAccent text-obsidian font-black text-xs sm:text-sm transition cursor-pointer';
+      } else {
+        lastFrameTimestamp = performance.now();
+        pauseBtn.innerHTML = '⏸ Pause Graphs';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+        requestAnimationFrame(benchmarkLoop);
+      }
+    }
+
+    function benchmarkLoop(now) {
+      if (!raceRunning || racePaused) return;
+
+      const delta = now - lastFrameTimestamp;
+      lastFrameTimestamp = now;
+      accumulatedElapsed += delta;
+
+      let allFinished = true;
+
+      ALGORITHMS.forEach(a => {
+        const active = accumulatedElapsed < a.durationMs;
+        const clampedMs = Math.min(accumulatedElapsed, a.durationMs);
+        const progress = clampedMs / a.durationMs;
+        const timeSec = clampedMs / 1000;
+
+        // Smooth realistic recall convergence curve as buckets/vectors are scanned
+        const currentRecall = a.targetRecall * Math.pow(progress, a.curvePower);
+
+        const hist = plotHistory[a.id];
+        const prevT = hist.length > 0 ? hist[hist.length - 1].t : -1;
+        if (timeSec - prevT >= 0.06 || (!active && prevT < a.durationMs / 1000)) {
+          hist.push({ t: timeSec, val: active ? currentRecall : a.targetRecall });
+        }
+
+        if (active) {
+          allFinished = false;
+          document.getElementById(`time-${a.id}`).innerText = `${timeSec.toFixed(2)} s`;
+          document.getElementById(`recall-${a.id}`).innerText = `${currentRecall.toFixed(1)}%`;
+        } else {
+          document.getElementById(`time-${a.id}`).innerText = `${(a.durationMs / 1000).toFixed(2)} s`;
+          document.getElementById(`status-${a.id}`).innerText = '✓ Complete';
+          document.getElementById(`status-${a.id}`).className = 'text-xs font-mono text-emeraldAccent font-bold';
+          document.getElementById(`recall-${a.id}`).innerText = a.recallText;
+        }
+
+        drawLiveAxisPlot(a, active);
+      });
+
+      if (!allFinished) {
+        requestAnimationFrame(benchmarkLoop);
+      } else {
+        raceRunning = false;
+        racePaused = false;
+        document.getElementById('btn-run-race').innerHTML = '<span>↻ Re-Run All 4 Algorithms</span>';
+        const pauseBtn = document.getElementById('btn-pause-race');
+        pauseBtn.disabled = true;
+        pauseBtn.innerHTML = '⏸ Pause Graphs';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
+      }
+    }
+
+    // Initialize empty labeled axes on page load
+    setTimeout(() => {
+      ALGORITHMS.forEach(a => drawLiveAxisPlot(a, false));
+    }, 50);
+
+    // =========================================================================
+    // 3. SEQUENTIAL SCALAR VS. PARALLEL MULTI-CORE + AVX2 SIMD SIMULATOR
+    // =========================================================================
+    let hwRunning = false;
+    let hwPaused = false;
+    let seqStep = 0;
+    let parProgress = [0, 0, 0, 0];
+    let hwInterval = null;
+
+    const SIMD_A = ['0.85', '0.42', '0.93', '0.28', '0.71', '0.89', '0.36', '0.54'];
+    const SIMD_B = ['0.81', '0.45', '0.90', '0.25', '0.74', '0.86', '0.33', '0.52'];
+
+    function renderHardwareFrames(activeSeqIdx = -1, simdFiring = false) {
+      // 1. Sequential 16-cell scalar grid (only 1 cell lights up at a time)
+      const seqGrid = document.getElementById('seq-scalar-grid');
+      const vals = [...SIMD_A, '0.81', '0.64', '0.22', '0.95', '0.58', '0.44', '0.77', '0.61'];
+      seqGrid.innerHTML = vals.map((v, idx) => {
+        const isCurrent = idx === activeSeqIdx;
+        return `
+          <div class="p-1.5 rounded border ${isCurrent ? 'bg-roseAccent text-obsidian border-roseAccent font-black scale-105' : 'bg-surface border-borderWarm text-stoneMuted'} transition-all">
+            <span class="block text-[8px]">D${idx}</span>
+            <span class="block">${v}</span>
+          </div>
+        `;
+      }).join('');
+
+      // 2. Parallel 8-lane AVX2 SIMD Register (all 8 lanes fire simultaneously)
+      const parSimd = document.getElementById('par-simd-grid');
+      parSimd.innerHTML = SIMD_A.map((v, i) => `
+        <div class="p-1.5 rounded-lg border ${simdFiring ? 'bg-amberAccent/25 border-amberAccent text-cream shadow-md scale-105' : 'bg-surface border-borderWarm text-stone-300'} transition-all">
+          <span class="block text-[8px] text-stoneMuted">Lane ${i}</span>
+          <span class="block font-bold">${v}</span>
+          <span class="block text-[9px] text-amberAccent">×${SIMD_B[i]}</span>
         </div>
       `).join('');
-    }
 
-    function runSimdPulse() {
-      const status = document.getElementById('simd-cycle-status');
-      status.innerText = '⚡ Computing 8 lanes simultaneously...';
-      renderSimdLanes(true);
-      setTimeout(() => {
-        renderSimdLanes(false);
-        status.innerText = '✓ Done in 1 CPU Clock Cycle';
-      }, 1100);
-    }
-
-    function simulateParallelBatch() {
-      const container = document.getElementById('openmp-cores');
-      const cores = [
-        { id: 'Core 0', batch: 'Queries #01–#25', progress: 100 },
-        { id: 'Core 1', batch: 'Queries #26–#50', progress: 100 },
-        { id: 'Core 2', batch: 'Queries #51–#75', progress: 100 },
-        { id: 'Core 3', batch: 'Queries #76–#100', progress: 100 }
+      // 3. 4 OpenMP Worker Threads
+      const threadsBox = document.getElementById('par-threads-container');
+      const threadMeta = [
+        { label: 'Core 0 • Thread 0', batch: 'Q1–Q25' },
+        { label: 'Core 1 • Thread 1', batch: 'Q26–Q50' },
+        { label: 'Core 2 • Thread 2', batch: 'Q51–Q75' },
+        { label: 'Core 3 • Thread 3', batch: 'Q76–Q100' }
       ];
-
-      container.innerHTML = cores.map(c => `
-        <div class="space-y-1">
-          <div class="flex justify-between text-[11px] font-mono">
-            <span class="text-creamText font-bold">${c.id} <span class="text-mutedStone font-normal">(${c.batch})</span></span>
-            <span class="text-mintGlow">Private Scratchpad • 0 Locks</span>
+      threadsBox.innerHTML = threadMeta.map((t, idx) => {
+        const pct = Math.min(100, Math.round(parProgress[idx]));
+        return `
+          <div class="bg-surface border border-borderWarm rounded-lg p-2.5 space-y-1">
+            <div class="flex justify-between text-[10px] font-mono">
+              <span class="text-cream font-bold">${t.label}</span>
+              <span class="${pct >= 100 ? 'text-emeraldAccent font-bold' : 'text-amberAccent'}">${pct}% (${t.batch})</span>
+            </div>
+            <div class="w-full bg-obsidian h-1.5 rounded-full overflow-hidden">
+              <div class="bg-gradient-to-r from-amberAccent to-emeraldAccent h-full rounded-full transition-all duration-75" style="width:${pct}%"></div>
+            </div>
           </div>
-          <div class="w-full bg-stoneCard h-2 rounded-full overflow-hidden">
-            <div class="bg-mintGlow h-full rounded-full transition-all duration-700" style="width: 15%"></div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
 
-      setTimeout(() => {
-        container.querySelectorAll('.bg-mintGlow').forEach(bar => {
-          bar.style.width = '100%';
-        });
-      }, 80);
+    function startHardwareComparison() {
+      if (hwInterval) clearInterval(hwInterval);
+      hwRunning = true;
+      hwPaused = false;
+      seqStep = 0;
+      parProgress = [0, 0, 0, 0];
+
+      document.getElementById('btn-run-hw').innerText = '⏳ Comparing Execution...';
+      const pauseBtn = document.getElementById('btn-pause-hw');
+      pauseBtn.disabled = false;
+      pauseBtn.innerText = '⏸ Pause';
+      pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+
+      document.getElementById('seq-status').innerText = 'Scanning 1-by-1...';
+      document.getElementById('seq-status').className = 'font-mono text-xs text-roseAccent font-bold';
+      document.getElementById('par-status').innerText = '4 Threads + AVX2 Active';
+
+      hwInterval = setInterval(stepHardwareTick, 90);
+    }
+
+    function togglePauseHardware() {
+      if (!hwRunning) return;
+      hwPaused = !hwPaused;
+      const pauseBtn = document.getElementById('btn-pause-hw');
+      if (hwPaused) {
+        pauseBtn.innerText = '▶ Resume';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-emeraldAccent text-obsidian font-black text-xs sm:text-sm transition cursor-pointer';
+      } else {
+        pauseBtn.innerText = '⏸ Pause';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface hover:bg-borderWarm border border-amberAccent/50 text-amberAccent font-bold text-xs sm:text-sm transition cursor-pointer';
+      }
+    }
+
+    function stepHardwareTick() {
+      if (!hwRunning || hwPaused) return;
+
+      // Parallel + SIMD progresses 6.5x faster across all 4 cores simultaneously
+      const parActive = parProgress[0] < 100;
+      if (parActive) {
+        parProgress = parProgress.map((p, idx) => Math.min(100, p + 6.5 + (idx % 2) * 0.6));
+      } else {
+        document.getElementById('par-status').innerText = '✓ Done in 0.19 ms!';
+      }
+
+      // Sequential single-thread crawls 1 dimension per tick up to 128
+      if (seqStep < 128) {
+        seqStep += 1.5;
+        const pct = Math.min(100, Math.round((seqStep / 128) * 100));
+        document.getElementById('seq-ops-counter').innerText = `${Math.min(128, Math.round(seqStep))} / 128 Dims`;
+        document.getElementById('seq-progress-text').innerText = `${pct}%`;
+        document.getElementById('seq-progress-bar').style.width = `${pct}%`;
+        renderHardwareFrames(Math.floor(seqStep) % 16, parActive);
+      } else {
+        clearInterval(hwInterval);
+        hwRunning = false;
+        document.getElementById('seq-status').innerText = '✓ Done (Slow)';
+        document.getElementById('btn-run-hw').innerText = '↻ Re-Run Comparison';
+        const pauseBtn = document.getElementById('btn-pause-hw');
+        pauseBtn.disabled = true;
+        pauseBtn.innerText = '⏸ Pause';
+        pauseBtn.className = 'px-4 py-3 rounded-xl bg-surface border border-borderWarm text-stoneMuted font-bold text-xs sm:text-sm transition cursor-not-allowed';
+        renderHardwareFrames(-1, false);
+      }
     }
 
     // =========================================================================
-    // 3. THREE.JS 3D VECTOR BOUNDARY EXPLORER
+    // 4. THREE.JS 3D HYPERPLANE BOUNDARY VISUALIZER
     // =========================================================================
-    let scene, camera, renderer, controls, queryDot, neighborDot, rescueLine;
+    let scene3D, camera3D, renderer3D, controls3D, qDot, nDot, linkLine;
 
-    function init3D() {
-      const container = document.getElementById('three-canvas');
+    function initThreeViewport() {
+      const container = document.getElementById('three-viewport');
       const w = container.clientWidth;
       const h = container.clientHeight;
 
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0b0a09);
+      scene3D = new THREE.Scene();
+      scene3D.background = new THREE.Color(0x09090b);
 
-      camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-      camera.position.set(4.2, 2.8, 4.8);
+      camera3D = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+      camera3D.position.set(4.0, 2.7, 4.6);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(w, h);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
+      renderer3D = new THREE.WebGLRenderer({ antialias: true });
+      renderer3D.setSize(w, h);
+      renderer3D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer3D.domElement);
 
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
+      controls3D = new THREE.OrbitControls(camera3D, renderer3D.domElement);
+      controls3D.enableDamping = true;
 
-      // Subtle warm grid
       const grid = new THREE.GridHelper(7, 14, 0x44403c, 0x1c1917);
       grid.position.y = -1.5;
-      scene.add(grid);
+      scene3D.add(grid);
 
-      // Divider Hyperplane
-      const planeGeo = new THREE.PlaneGeometry(5, 5);
-      const planeMat = new THREE.MeshBasicMaterial({
-        color: 0xf59e0b,
-        transparent: true,
-        opacity: 0.16,
-        side: THREE.DoubleSide,
-        depthWrite: false
-      });
-      const plane = new THREE.Mesh(planeGeo, planeMat);
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(5, 5),
+        new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })
+      );
       plane.rotation.y = Math.PI / 4;
-      scene.add(plane);
+      scene3D.add(plane);
 
-      // Background dataset vectors
       const ptsGeo = new THREE.BufferGeometry();
       const coords = [];
-      for (let i = 0; i < 140; i++) {
-        coords.push(
-          (Math.random() - 0.5) * 4.2,
-          (Math.random() - 0.5) * 2.6,
-          (Math.random() - 0.5) * 4.2
-        );
+      for (let i = 0; i < 150; i++) {
+        coords.push((Math.random() - 0.5) * 4.2, (Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 4.2);
       }
       ptsGeo.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
-      const ptsMat = new THREE.PointsMaterial({ color: 0x78716c, size: 0.07 });
-      scene.add(new THREE.Points(ptsGeo, ptsMat));
+      scene3D.add(new THREE.Points(ptsGeo, new THREE.PointsMaterial({ color: 0x78716c, size: 0.07 })));
 
-      // Query Vector (Amber)
-      queryDot = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.15),
-        new THREE.MeshBasicMaterial({ color: 0xf59e0b })
-      );
-      queryDot.position.set(0.35, 0.2, 0.15);
-      scene.add(queryDot);
+      qDot = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+      qDot.position.set(0.35, 0.22, 0.15);
+      scene3D.add(qDot);
 
-      // Borderline Neighbor Vector (Emerald)
-      neighborDot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.13, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0x10b981 })
-      );
-      neighborDot.position.set(-0.25, 0.15, 0.35);
-      scene.add(neighborDot);
+      nDot = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+      nDot.position.set(-0.26, 0.16, 0.34);
+      scene3D.add(nDot);
 
-      // Rescue beam
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([queryDot.position, neighborDot.position]);
-      rescueLine = new THREE.Line(
-        lineGeo,
+      linkLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([qDot.position, nDot.position]),
         new THREE.LineBasicMaterial({ color: 0x10b981 })
       );
-      scene.add(rescueLine);
+      scene3D.add(linkLine);
 
       window.addEventListener('resize', () => {
         if (!container) return;
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
+        camera3D.aspect = container.clientWidth / container.clientHeight;
+        camera3D.updateProjectionMatrix();
+        renderer3D.setSize(container.clientWidth, container.clientHeight);
       });
 
       function animate() {
         requestAnimationFrame(animate);
-        scene.rotation.y += 0.002;
-        controls.update();
-        renderer.render(scene, camera);
+        scene3D.rotation.y += 0.0022;
+        controls3D.update();
+        renderer3D.render(scene3D, camera3D);
       }
       animate();
     }
 
-    function set3DMode(mode) {
-      const btnClassic = document.getElementById('btn-3d-classic');
-      const btnMp = document.getElementById('btn-3d-mp');
-      const caption = document.getElementById('three-caption');
+    function toggle3DProbe(mode) {
+      const btnSingle = document.getElementById('btn-3d-single');
+      const btnMulti = document.getElementById('btn-3d-multi');
+      const caption = document.getElementById('three-status-text');
 
-      if (mode === 'classic') {
-        btnClassic.className = 'px-3 py-1.5 rounded-lg font-bold bg-rose-500 text-white transition cursor-pointer';
-        btnMp.className = 'px-3 py-1.5 rounded-lg font-semibold text-mutedStone hover:text-creamText transition cursor-pointer';
-        neighborDot.material.color.setHex(0xf43f5e);
-        rescueLine.visible = false;
-        caption.innerHTML = '<span><strong class="text-rose-400">✗ 1-Probe Miss:</strong> Because the neighbor sits just across the divider plane, single-folder search ignores it.</span>';
+      if (mode === 'single') {
+        btnSingle.className = 'px-3 py-1.5 rounded-lg font-bold bg-roseAccent text-white transition cursor-pointer';
+        btnMulti.className = 'px-3 py-1.5 rounded-lg font-semibold text-stoneMuted hover:text-cream transition cursor-pointer';
+        nDot.material.color.setHex(0xf43f5e);
+        linkLine.visible = false;
+        caption.innerHTML = '<strong class="text-roseAccent">✗ 1-Probe Boundary Miss:</strong> The nearest neighbor sits just across the hyperplane divider, so single-bucket search misses it.';
       } else {
-        btnClassic.className = 'px-3 py-1.5 rounded-lg font-semibold text-mutedStone hover:text-creamText transition cursor-pointer';
-        btnMp.className = 'px-3 py-1.5 rounded-lg font-bold bg-amberGlow text-obsidian transition cursor-pointer';
-        neighborDot.material.color.setHex(0x10b981);
-        rescueLine.visible = true;
-        caption.innerHTML = '<span><strong class="text-mintGlow">✓ Multi-Probe Active:</strong> Query vector (amber) sits near the divider plane and rescues the true neighbor (emerald) across the boundary.</span>';
-      }
-    }
-
-    // =========================================================================
-    // 4. LIVE BENCHMARKS SYNC
-    // =========================================================================
-    async function syncLiveResults() {
-      const status = document.getElementById('sync-status');
-      try {
-        const res = await fetch('./benchmarks/results.json?t=' + Date.now());
-        if (!res.ok) throw new Error('Not found');
-        await res.json();
-        status.innerText = 'Live results.json Synced';
-        status.className = 'text-mintGlow font-semibold';
-      } catch (e) {
-        status.innerText = 'SIFT10K Ground-Truth Active';
+        btnSingle.className = 'px-3 py-1.5 rounded-lg font-semibold text-stoneMuted hover:text-cream transition cursor-pointer';
+        btnMulti.className = 'px-3 py-1.5 rounded-lg font-bold bg-amberAccent text-obsidian transition cursor-pointer';
+        nDot.material.color.setHex(0x10b981);
+        linkLine.visible = true;
+        caption.innerHTML = '<strong class="text-emeraldAccent">✓ Multi-Probe Rescue Active:</strong> Even when a query vector (amber) lands close to a divider hyperplane, probing the adjacent bucket recovers the true nearest neighbor (emerald).';
       }
     }
 
     window.onload = () => {
-      selectImage(0);
-      renderSimdLanes(false);
-      simulateParallelBatch();
-      init3D();
-      syncLiveResults();
+      selectSampleImage(0);
+      renderHardwareFrames(-1, false);
+      initThreeViewport();
     };
   </script>
 </body>
 </html>
+
+
+
+
