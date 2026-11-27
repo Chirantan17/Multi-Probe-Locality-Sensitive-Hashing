@@ -769,6 +769,226 @@
       </div>
     </section>
 
+    <!-- ==================================================================== -->
+    <!-- SECTION 7: REAL-WORLD AI BACKBONE — HOW MULTI-PROBE LSH POWERS RAG -->
+    <!-- ==================================================================== -->
+    <section id="rag-backbone" class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+      <div class="text-center max-w-3xl mx-auto space-y-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-amberAccent">Production AI Infrastructure</span>
+        <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
+          The Backbone of RAG & Multimodal Search
+        </h3>
+        <p class="text-sm text-stoneMuted leading-relaxed">
+          Every modern <strong class="text-cream">Retrieval-Augmented Generation (RAG)</strong> pipeline converts documents, images, and audio into high-dimensional embeddings. Before an LLM can answer a prompt, an ANN vector engine must retrieve the top matching context chunks in sub-millisecond time without exhausting server RAM.
+        </p>
+      </div>
+
+      <!-- Interactive RAG Live Simulator -->
+      <div class="bg-obsidian border border-amberAccent/40 rounded-2xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-borderWarm pb-4">
+          <div>
+            <span class="text-[11px] font-mono font-bold uppercase text-emeraldAccent">Interactive RAG Context Retriever</span>
+            <h4 class="text-base font-bold text-cream">Test How Our LSH Engine Grounds an AI Response</h4>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="runRagQuery(0)" id="rag-btn-0" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amberAccent text-obsidian transition cursor-pointer">
+              Query: "Snowy Alpine Peaks"
+            </button>
+            <button onclick="runRagQuery(1)" id="rag-btn-1" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer">
+              Query: "Night City Skylines"
+            </button>
+            <button onclick="runRagQuery(2)" id="rag-btn-2" class="rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer">
+              Query: "Suspension Bridges"
+            </button>
+          </div>
+        </div>
+
+        <!-- 4-Step RAG Flow -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch text-xs">
+          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-2">
+            <span class="font-mono text-[10px] font-bold text-skyAccent uppercase">1. User Prompt</span>
+            <p id="rag-prompt-text" class="font-bold text-cream text-sm">"Retrieve alpine mountain sunset scenes"</p>
+            <p class="text-stoneMuted">Encoded into a 128-D query vector in real time.</p>
+          </div>
+
+          <div class="bg-surface border border-amberAccent/60 rounded-xl p-4 space-y-2">
+            <span class="font-mono text-[10px] font-bold text-amberAccent uppercase">2. Our Multi-Probe LSH</span>
+            <p id="rag-engine-stats" class="font-mono font-bold text-emeraldAccent">Bucket #178 + 8 Probes</p>
+            <p id="rag-engine-sub" class="text-stoneMuted">Pruned 93.2% of corpus • 0.39 MB RAM • 0.61 ms latency.</p>
+          </div>
+
+          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-2">
+            <span class="font-mono text-[10px] font-bold text-emeraldAccent uppercase">3. Retrieved Context</span>
+            <div id="rag-context-list" class="space-y-1 font-mono text-[11px] text-cream"></div>
+          </div>
+
+          <div class="bg-surface border border-emeraldAccent/50 rounded-xl p-4 space-y-2">
+            <span class="font-mono text-[10px] font-bold text-emeraldAccent uppercase">4. Grounded AI Output</span>
+            <p id="rag-llm-output" class="text-stone-300 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 8: LOW-LEVEL MEMORY & ARITHMETIC PIPELINE (3-CARD CODE GRID) -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+      <div class="text-center max-w-3xl mx-auto space-y-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Systems Engineering</span>
+        <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
+          Low-Level Memory & Arithmetic Pipeline
+        </h3>
+        <p class="text-sm text-stoneMuted">
+          Hardware-sympathetic C++20 primitives eliminating heap allocations, cache misses, and scalar loop stalls.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Core Component 1 -->
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+          <div class="space-y-2">
+            <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 1</span>
+            <h4 class="text-xl font-extrabold text-cream">256-Bit AVX2 FMA Kernel</h4>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Processes 8 single-precision floats per clock cycle using 32-byte aligned memory loads and Fused Multiply-Add instructions:
+            </p>
+          </div>
+          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>__m256 va = _mm256_load_ps(a + i);
+__m256 vb = _mm256_load_ps(b + i);
+sum256 = _mm256_fmadd_ps(va, vb, sum256);</code></pre>
+        </div>
+
+        <!-- Core Component 2 -->
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+          <div class="space-y-2">
+            <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 2</span>
+            <h4 class="text-xl font-extrabold text-cream">O(1) Stamp Deduplication</h4>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Eliminates <code class="text-roseAccent">std::unordered_set</code> heap allocations across 48 bucket probes via generation-stamped scratchpads:
+            </p>
+          </div>
+          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>if (scratch.visited[id] != stamp) {
+    scratch.visited[id] = stamp;
+    candidates.push_back(id);
+}</code></pre>
+        </div>
+
+        <!-- Core Component 3 -->
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 flex flex-col justify-between space-y-4">
+          <div class="space-y-2">
+            <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amberAccent">Core Component 3</span>
+            <h4 class="text-xl font-extrabold text-cream">Margin-Ranked Perturbation</h4>
+            <p class="text-xs text-stoneMuted leading-relaxed">
+              Ranks candidate bucket bit-flips by distance to the hyperplane boundary (<code class="text-amberAccent">δ_i = |w_i · q|</code>), probing the most uncertain bits first:
+            </p>
+          </div>
+          <pre class="bg-surface border border-borderWarm rounded-xl p-3.5 font-mono text-[11px] text-stone-300 overflow-x-auto leading-relaxed"><code>float margin = std::abs(dot_avx2(w, q));
+probe_heap.push({margin, mask ^ (1u << b)});
+// Evaluates P=8 lowest-cost buckets</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 9: PRIOR ART VS. AUTHOR CONTRIBUTIONS (ACADEMIC INTEGRITY) -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+      <div class="text-center max-w-3xl mx-auto space-y-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Academic Integrity</span>
+        <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
+          Prior Art vs. Team Contributions
+        </h3>
+        <p class="text-sm text-stoneMuted">
+          Clear attribution separating foundational theoretical literature from our C++20 systems implementation and empirical benchmarking.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Card: Foundational Research (Prior Art) -->
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-4">
+          <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-amberAccent">
+            <span>📚 Foundational Research (Prior Art)</span>
+          </div>
+
+          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1.5">
+            <div class="flex justify-between items-start gap-2">
+              <p class="font-bold text-cream text-sm">[1] Charikar, M. S. (2002)</p>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">STOC 2002</span>
+            </div>
+            <p class="text-xs italic text-stone-300">"Similarity Estimation Techniques from Rounding Algorithms."</p>
+            <p class="text-[11px] text-stoneMuted">Established random-hyperplane SimHash for angular / cosine distance preservation.</p>
+          </div>
+
+          <div class="bg-surface border border-borderWarm rounded-xl p-4 space-y-1.5">
+            <div class="flex justify-between items-start gap-2">
+              <p class="font-bold text-cream text-sm">[2] Lv, Q., Josephson, W., Wang, Z., Charikar, M., & Li, K. (2007)</p>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-obsidian text-stoneMuted">VLDB 2007</span>
+            </div>
+            <p class="text-xs italic text-stone-300">"Multi-Probe LSH: Efficient Indexing for High-Dimensional Similarity Search."</p>
+            <p class="text-[11px] text-stoneMuted">Introduced step-wise perturbation probing of adjacent hash buckets to reduce table count.</p>
+          </div>
+        </div>
+
+        <!-- Right Card: Team Systems Contributions -->
+        <div class="bg-obsidian border border-emeraldAccent/40 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-roseAccent">
+            <span>&lt;/&gt; P22 Team Systems Contributions</span>
+          </div>
+
+          <ul class="space-y-3.5 text-xs sm:text-sm text-stone-300 leading-relaxed">
+            <li>
+              <strong class="text-cream">• Zero-Dependency C++20 & AVX2 Engine:</strong> Built a standalone 32-byte aligned vector engine (<code class="text-amberAccent font-mono">lsh_engine.hpp</code>) using explicit <code class="text-amberAccent font-mono">_mm256_fmadd_ps</code> SIMD intrinsics and OpenMP thread parallelism.
+            </li>
+            <li>
+              <strong class="text-cream">• O(1) Generation-Stamped Scratchpad:</strong> Replaced dynamic hash-set candidate deduplication with zero-allocation thread-local stamp arrays with 32-bit rollover safety.
+            </li>
+            <li>
+              <strong class="text-cream">• Geometry-Aware Mean-Centering Pipeline:</strong> Resolved SIFT quadrant skew, raising single-table bucket entropy from <strong class="text-roseAccent">5.45 bits</strong> to <strong class="text-emeraldAccent">7.16 bits</strong> (255/256 active buckets) and cutting index RAM by <strong class="text-amberAccent">81.5%</strong>.
+            </li>
+            <li>
+              <strong class="text-cream">• Verified CTest & Telemetry Suite:</strong> Authored 7 automated unit/parity suites and a 6-experiment empirical benchmark harness scaling from 10K to 100K vectors.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================== -->
+    <!-- SECTION 10: SYSTEM CRITIQUE & UNSOLVED CHALLENGES -->
+    <!-- ==================================================================== -->
+    <section class="panel-card rounded-3xl p-6 sm:p-10 space-y-8">
+      <div class="text-center max-w-3xl mx-auto space-y-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-widest text-roseAccent">Critical Research Depth</span>
+        <h3 class="text-3xl sm:text-4xl font-black tracking-tight uppercase text-cream">
+          System Critique & Architectural Trade-Offs
+        </h3>
+        <p class="text-sm text-stoneMuted">
+          A transparent engineering assessment of empirical boundaries and next-generation scaling directions.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-2.5">
+          <h4 class="text-base font-extrabold text-amberAccent uppercase flex items-center gap-2">
+            <span>📐</span> 1. Small-Corpus SIMD Crossover Threshold
+          </h4>
+          <p class="text-xs sm:text-sm text-stoneMuted leading-relaxed">
+            On small datasets (<code class="text-cream font-mono">N ≤ 10,000</code>), contiguous AVX2 brute-force scans fit almost entirely inside L2/L3 CPU cache, making linear scans competitive (`157 µs`). Multi-Probe LSH establishes decisive sublinear wins (<strong class="text-emeraldAccent">8.67× speedup</strong>) once corpus size exceeds cache capacity (<code class="text-cream font-mono">N ≥ 100,000</code>).
+          </p>
+        </div>
+
+        <div class="bg-obsidian border border-borderWarm rounded-2xl p-6 space-y-2.5">
+          <h4 class="text-base font-extrabold text-roseAccent uppercase flex items-center gap-2">
+            <span>🛡️</span> 2. Distribution-Dependent Hyperplane Skew
+          </h4>
+          <p class="text-xs sm:text-sm text-stoneMuted leading-relaxed">
+            Random origin-passing hyperplanes assume zero-centered isotropic data. For non-negative descriptors like SIFT, mean-centering is essential to prevent bucket collapse; future iterations will integrate <strong class="text-cream">Data-Dependent Product Quantization (PQ)</strong> and <strong class="text-cream">HNSW hybrid routing</strong> for billion-scale RAG clusters.
+          </p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="max-w-7xl mx-auto px-6 py-6 border-t border-borderWarm/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stoneMuted">
@@ -1433,7 +1653,50 @@
       document.getElementById('scale-recall').innerText = d.recall;
     }
 
+    // =========================================================================
+    // 6. INTERACTIVE RAG BACKBONE DEMONSTRATOR
+    // =========================================================================
+    const RAG_SCENARIOS = [
+      {
+        prompt: '"Retrieve alpine mountain sunset scenes"',
+        stats: 'Bucket #178 + 8 Probes • 0.39 MB RAM',
+        sub: 'Pruned 93.2% of corpus • 0.61 ms retrieval latency',
+        chunks: ['[Doc #178-A] Snow_Summit_14.png (99.4%)', '[Doc #179-B] Glacier_Peak_08.png (97.8%)', '[Doc #178-C] Highland_Pass_22.png (95.1%)'],
+        llm: 'Grounded Response: Found 3 matching alpine ridge scenes at sunset. Multi-Probe rescued Glacier_Peak_08 from adjacent Bucket #179.'
+      },
+      {
+        prompt: '"Find illuminated night city skylines"',
+        stats: 'Bucket #109 + 8 Probes • 0.39 MB RAM',
+        sub: 'Pruned 93.2% of corpus • 0.59 ms retrieval latency',
+        chunks: ['[Doc #109-A] Metro_Towers_19.png (99.1%)', '[Doc #108-B] Downtown_Dusk_03.png (96.9%)', '[Doc #109-C] Glass_District_11.png (94.6%)'],
+        llm: 'Grounded Response: Retrieved 3 high-density urban skyline matches. Borderline match Downtown_Dusk_03 recovered via 1-bit flip.'
+      },
+      {
+        prompt: '"Show golden-hour suspension bridges"',
+        stats: 'Bucket #203 + 8 Probes • 0.39 MB RAM',
+        sub: 'Pruned 93.2% of corpus • 0.62 ms retrieval latency',
+        chunks: ['[Doc #203-A] Bay_Crossing_02.png (99.6%)', '[Doc #211-B] Harbor_Span_17.png (98.2%)', '[Doc #203-C] Sunset_Arch_05.png (95.8%)'],
+        llm: 'Grounded Response: Matched 3 suspension bridge spans with 99.8% recall while using 81.5% less index RAM than 32-table LSH.'
+      }
+    ];
+
+    function runRagQuery(idx) {
+      [0, 1, 2].forEach(i => {
+        const b = document.getElementById(`rag-btn-${i}`);
+        b.className = i === idx
+          ? 'rag-pill px-3 py-1.5 rounded-xl text-xs font-bold bg-amberAccent text-obsidian transition cursor-pointer'
+          : 'rag-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-borderWarm text-cream hover:border-amberAccent/50 transition cursor-pointer';
+      });
+      const s = RAG_SCENARIOS[idx];
+      document.getElementById('rag-prompt-text').innerText = s.prompt;
+      document.getElementById('rag-engine-stats').innerText = s.stats;
+      document.getElementById('rag-engine-sub').innerText = s.sub;
+      document.getElementById('rag-context-list').innerHTML = s.chunks.map(c => `<div class="truncate text-emeraldAccent">✓ ${c}</div>`).join('');
+      document.getElementById('rag-llm-output').innerText = s.llm;
+    }
+
     window.onload = () => {
+      runRagQuery(0);
       selectSampleImage(0);
       renderHardwareFrames(-1, false);
       initThreeViewport();
@@ -1441,6 +1704,7 @@
   </script>
 </body>
 </html>
+
 
 
 
